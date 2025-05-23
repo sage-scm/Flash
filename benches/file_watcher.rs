@@ -29,7 +29,7 @@ impl Watcher {
         match self {
             Watcher::Flash => {
                 let mut cmd =
-                    Command::new(std::env::current_dir().ok()?.join("target/release/flash"));
+                    Command::new(std::env::current_dir().ok()?.join("target/release/flash-watcher"));
                 cmd.args(["--watch", dir.to_str()?]);
                 cmd.arg("echo");
                 cmd.arg("change");

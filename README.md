@@ -6,17 +6,20 @@
 
 An impossibly fast file watcher that executes commands when files change.
 
+**1.8ms startup time** • **8.9MB memory usage** • **19.7x faster than Nodemon**
+
 Think `nodemon`, but more general purpose and written in Rust.
 
 ## Features
 
-- ⚡ **Blazingly fast** - Built with Rust for maximum performance
+- ⚡ **Blazingly fast** - 1.8ms startup, 19.7x faster than Nodemon ([benchmarks](PERFORMANCE.md))
 - 🎯 **Flexible filtering** - Support for glob patterns, file extensions, and ignore patterns
 - 🔧 **Configurable** - YAML configuration files for complex setups
 - 📊 **Performance monitoring** - Built-in statistics and benchmarking
 - 🔄 **Process management** - Restart long-running processes or spawn new ones
 - 🌍 **Cross-platform** - Works on Windows, macOS, and Linux
 - 🎨 **Beautiful output** - Colored terminal output with clear status messages
+- 💾 **Memory efficient** - Only 8.9MB memory usage, single 1.8MB binary
 
 ## Installation
 
@@ -206,6 +209,10 @@ flash --bench
 ```
 
 This will run a series of benchmarks comparing Flash against popular file watchers like nodemon, watchexec, and cargo-watch.
+
+## Performance
+
+Flash is designed for speed. See our [performance benchmarks](PERFORMANCE.md) for detailed comparisons with other file watchers.
 
 ## Contributing
 
