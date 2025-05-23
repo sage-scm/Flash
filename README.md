@@ -1,7 +1,7 @@
 # Flash ⚡
 
 [![CI](https://github.com/sage-scm/Flash/workflows/CI/badge.svg)](https://github.com/sage-scm/Flash/actions)
-[![Crates.io](https://img.shields.io/crates/v/flash.svg)](https://crates.io/crates/flash)
+[![Crates.io](https://img.shields.io/crates/v/flash-watcher.svg)](https://crates.io/crates/flash-watcher)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 An impossibly fast file watcher that executes commands when files change.
@@ -23,7 +23,7 @@ Think `nodemon`, but more general purpose and written in Rust.
 ### From Crates.io (Recommended)
 
 ```sh
-cargo install flash
+cargo install flash-watcher
 ```
 
 ### From Source

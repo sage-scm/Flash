@@ -343,7 +343,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "flash"
+name = "flash-watcher"
 version = "0.1.0"
 dependencies = [
  "anyhow",
