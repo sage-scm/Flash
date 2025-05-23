@@ -25,11 +25,19 @@ walkdir = "2.4"
 sysinfo = "0.30.5"
 chrono = "0.4"
 
+[features]
+default = []
+# Enable benchmarks (disabled by default to save CI time)
+benchmarks = []
+
 [dev-dependencies]
 criterion = "0.5"
 tempfile = "3.9"
 which = "5.0"
 
+# Benchmarks are optional to save CI workflow minutes
+# Enable with: cargo bench --features benchmarks
 [[bench]]
 name = "file_watcher"
 harness = false
+required-features = ["benchmarks"]

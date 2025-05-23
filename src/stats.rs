@@ -63,7 +63,7 @@ impl StatsCollector {
     }
 }
 
-fn format_duration(duration: Duration) -> String {
+pub fn format_duration(duration: Duration) -> String {
     let seconds = duration.as_secs();
     if seconds < 60 {
         format!("{}s", seconds)
@@ -76,5 +76,75 @@ fn format_duration(duration: Duration) -> String {
             (seconds % 3600) / 60,
             seconds % 60
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[test]
+    fn test_stats_collector_new() {
+        let stats = StatsCollector::new();
+        assert_eq!(stats.file_changes, 0);
+        assert_eq!(stats.watcher_calls, 0);
+        assert_eq!(stats.last_memory_usage, 0);
+        assert_eq!(stats.last_cpu_usage, 0.0);
+    }
+
+    #[test]
+    fn test_record_file_change() {
+        let mut stats = StatsCollector::new();
+        assert_eq!(stats.file_changes, 0);
+
+        stats.record_file_change();
+        assert_eq!(stats.file_changes, 1);
+
+        stats.record_file_change();
+        assert_eq!(stats.file_changes, 2);
+    }
+
+    #[test]
+    fn test_record_watcher_call() {
+        let mut stats = StatsCollector::new();
+        assert_eq!(stats.watcher_calls, 0);
+
+        stats.record_watcher_call();
+        assert_eq!(stats.watcher_calls, 1);
+
+        stats.record_watcher_call();
+        assert_eq!(stats.watcher_calls, 2);
+    }
+
+    #[test]
+    fn test_format_duration_seconds() {
+        assert_eq!(format_duration(Duration::from_secs(0)), "0s");
+        assert_eq!(format_duration(Duration::from_secs(30)), "30s");
+        assert_eq!(format_duration(Duration::from_secs(59)), "59s");
+    }
+
+    #[test]
+    fn test_format_duration_minutes() {
+        assert_eq!(format_duration(Duration::from_secs(60)), "1m 0s");
+        assert_eq!(format_duration(Duration::from_secs(90)), "1m 30s");
+        assert_eq!(format_duration(Duration::from_secs(3599)), "59m 59s");
+    }
+
+    #[test]
+    fn test_format_duration_hours() {
+        assert_eq!(format_duration(Duration::from_secs(3600)), "1h 0m 0s");
+        assert_eq!(format_duration(Duration::from_secs(3661)), "1h 1m 1s");
+        assert_eq!(format_duration(Duration::from_secs(7323)), "2h 2m 3s");
+    }
+
+    #[test]
+    fn test_update_resource_usage() {
+        let mut stats = StatsCollector::new();
+        // This test just ensures the method doesn't panic
+        // Actual values depend on system state
+        stats.update_resource_usage();
+        // Memory usage should be updated (non-zero for a running process)
+        // Note: This might be 0 in some test environments, so we just check it doesn't panic
     }
 }

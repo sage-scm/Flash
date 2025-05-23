@@ -1,65 +1,10 @@
 use glob::Pattern;
 use std::path::Path;
-
-// Import the function to test
-// Note: we'll need to make sure this function is exposed for testing
-mod path_filtering {
-    use glob::Pattern;
-    use std::path::Path;
-
-    pub fn should_process_path(
-        path: &Path,
-        extensions: &Option<String>,
-        include_patterns: &[Pattern],
-        ignore_patterns: &[Pattern],
-    ) -> bool {
-        let path_str = match path.to_str() {
-            Some(s) => s,
-            None => return false, // Can't process paths that can't be converted to strings
-        };
-
-        // Check ignore patterns
-        for pattern in ignore_patterns {
-            if pattern.matches(path_str) {
-                return false;
-            }
-        }
-
-        // If we have include patterns, the path must match at least one
-        if !include_patterns.is_empty() {
-            let mut matches = false;
-            for pattern in include_patterns {
-                if pattern.matches(path_str) {
-                    matches = true;
-                    break;
-                }
-            }
-            if !matches {
-                return false;
-            }
-        }
-
-        // If no extensions filter is specified, process the file
-        let extensions = match extensions {
-            Some(ext) => ext,
-            None => return true,
-        };
-
-        // Check file extension
-        if let Some(ext) = path.extension() {
-            if let Some(ext_str) = ext.to_str() {
-                return extensions.split(',').any(|e| e.trim() == ext_str);
-            }
-        }
-
-        false
-    }
-}
+use flash_watcher::should_process_path;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use path_filtering::should_process_path;
 
     fn create_patterns(patterns: &[&str]) -> Vec<Pattern> {
         patterns.iter().map(|p| Pattern::new(p).unwrap()).collect()

@@ -1,115 +1,6 @@
-use std::fs;
 use std::io::Write;
-
-use serde::{Deserialize, Serialize};
 use tempfile::NamedTempFile;
-
-// Mock version of the Config struct from main.rs
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-struct Config {
-    command: Vec<String>,
-    watch: Option<Vec<String>>,
-    ext: Option<String>,
-    pattern: Option<Vec<String>>,
-    ignore: Option<Vec<String>>,
-    debounce: Option<u64>,
-    initial: Option<bool>,
-    clear: Option<bool>,
-    restart: Option<bool>,
-    stats: Option<bool>,
-    stats_interval: Option<u64>,
-}
-
-// Mock version of Args struct from main.rs
-#[derive(Debug, Clone, PartialEq)]
-struct Args {
-    command: Vec<String>,
-    watch: Vec<String>,
-    ext: Option<String>,
-    pattern: Vec<String>,
-    ignore: Vec<String>,
-    debounce: u64,
-    initial: bool,
-    clear: bool,
-    restart: bool,
-    stats: bool,
-    stats_interval: u64,
-    bench: bool,
-}
-
-// Functions to test
-fn load_config(path: &str) -> anyhow::Result<Config> {
-    let content = fs::read_to_string(path)
-        .map_err(|e| anyhow::anyhow!("Failed to read config file: {}", e))?;
-
-    serde_yaml::from_str(&content)
-        .map_err(|e| anyhow::anyhow!("Failed to parse config file: {}", e))
-}
-
-fn merge_config(args: &mut Args, config: Config) {
-    // Only use config values when CLI args are not provided
-    if args.command.is_empty() && !config.command.is_empty() {
-        args.command = config.command;
-    }
-
-    if args.watch.len() == 1 && args.watch[0] == "." {
-        if let Some(watch_dirs) = config.watch {
-            args.watch = watch_dirs;
-        }
-    }
-
-    if args.ext.is_none() {
-        args.ext = config.ext;
-    }
-
-    if args.pattern.is_empty() {
-        if let Some(patterns) = config.pattern {
-            args.pattern = patterns;
-        }
-    }
-
-    if args.ignore.is_empty() {
-        if let Some(ignores) = config.ignore {
-            args.ignore = ignores;
-        }
-    }
-
-    if args.debounce == 100 {
-        if let Some(debounce) = config.debounce {
-            args.debounce = debounce;
-        }
-    }
-
-    if !args.initial {
-        if let Some(initial) = config.initial {
-            args.initial = initial;
-        }
-    }
-
-    if !args.clear {
-        if let Some(clear) = config.clear {
-            args.clear = clear;
-        }
-    }
-
-    if !args.restart {
-        if let Some(restart) = config.restart {
-            args.restart = restart;
-        }
-    }
-
-    if !args.stats {
-        if let Some(stats) = config.stats {
-            args.stats = stats;
-        }
-    }
-
-    if args.stats_interval == 10 {
-        if let Some(interval) = config.stats_interval {
-            args.stats_interval = interval;
-        }
-    }
-}
+use flash_watcher::{load_config, merge_config, Args, Config};
 
 #[cfg(test)]
 mod tests {
@@ -135,6 +26,7 @@ mod tests {
             stats: false,
             stats_interval: 10,
             bench: false,
+            config: None,
         }
     }
 
@@ -233,6 +125,7 @@ stats_interval: 5
             stats: true,
             stats_interval: 15, // Not default
             bench: false,
+            config: None,
         };
 
         let config = Config {

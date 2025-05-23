@@ -1,0 +1,82 @@
+name: Benchmarks
+
+on:
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      upload_results:
+        description: 'Upload benchmark results as artifacts'
+        required: false
+        default: 'true'
+        type: boolean
+
+  # Run benchmarks on releases
+  release:
+    types: [published]
+
+  # Optional: Run benchmarks weekly (commented out to save workflow minutes)
+  # schedule:
+  #   - cron: '0 2 * * 0'  # Every Sunday at 2 AM UTC
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  benchmark:
+    name: Run Benchmarks
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cache cargo index
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cache cargo build
+      uses: actions/cache@v3
+      with:
+        path: target
+        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Install gnuplot (for benchmark charts)
+      run: sudo apt-get update && sudo apt-get install -y gnuplot
+
+    - name: Run benchmarks
+      run: |
+        echo "Running benchmarks..."
+        cargo bench --features benchmarks --verbose
+        echo "Benchmarks completed!"
+
+    - name: Upload benchmark results
+      if: ${{ inputs.upload_results == 'true' || github.event_name == 'release' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-results
+        path: |
+          target/criterion/
+          *.html
+        retention-days: 30
+
+    - name: Comment benchmark results on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '🚀 Benchmark results are available in the workflow artifacts!'
+          })

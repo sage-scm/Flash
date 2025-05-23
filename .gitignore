@@ -55,3 +55,12 @@ node_modules/
 *.flash.yaml
 .flash.yaml
 flash.yaml
+
+# Coverage reports
+coverage-html/
+lcov.info
+*.profraw
+*.profdata
+
+# Benchmark results
+target/criterion/

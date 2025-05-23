@@ -208,7 +208,29 @@ Flash is designed to be blazingly fast and resource efficient. To see how it com
 flash --bench
 ```
 
-This will run a series of benchmarks comparing Flash against popular file watchers like nodemon, watchexec, and cargo-watch.
+This will show sample benchmark results. For real benchmarks, you can run:
+
+```sh
+# Run actual benchmarks (requires benchmarks feature)
+cargo bench --features benchmarks
+
+# Or install with benchmarks enabled
+cargo install flash-watcher --features benchmarks
+```
+
+**Note**: Benchmarks are disabled by default in CI/CD pipelines to save workflow minutes. They can be run manually or triggered through the dedicated benchmark workflow.
+
+### Development Scripts
+
+For developers, we provide convenient scripts:
+
+```sh
+# Generate code coverage reports (fast, excludes benchmarks)
+./scripts/coverage.sh
+
+# Run performance benchmarks (slow, requires benchmarks feature)
+./scripts/benchmark.sh
+```
 
 ## Performance
 

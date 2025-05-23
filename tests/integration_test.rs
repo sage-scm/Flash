@@ -53,10 +53,8 @@ mod tests {
         (command, cmd_str)
     }
 
-    // Skip this test in normal cargo test runs as it requires the binary to be built
-    // Run it manually with: cargo test --test integration_test -- --ignored
+    // This test requires the binary to be built but will run by default
     #[test]
-    #[ignore]
     fn test_flash_watches_file_changes() {
         // First, ensure the binary is built
         Command::new("cargo")
@@ -121,7 +119,7 @@ mod tests {
         assert!(stdout.contains("Flash watching for changes"));
 
         // Check that it detected the JS file change
-        assert!(stdout.contains("Change detected in:") && stdout.contains("test.js"));
+        assert!(stdout.contains("Change detected:") && stdout.contains("test.js"));
 
         // It should NOT detect the CSS file change
         assert!(!stdout.contains("style.css"));

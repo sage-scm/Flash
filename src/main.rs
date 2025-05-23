@@ -1,6 +1,4 @@
-use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -9,20 +7,21 @@ use std::time::Duration;
 use anyhow::{Context, Result};
 use clap::Parser;
 use colored::Colorize;
-use glob::Pattern;
 use notify::{RecursiveMode, Watcher};
-use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
-mod bench_results;
+use flash_watcher::{
+    load_config, merge_config, should_process_path, run_benchmarks,
+    compile_patterns, should_skip_dir, Args, CommandRunner
+};
+
 mod stats;
-use bench_results::BenchResults;
 use stats::StatsCollector;
 
 /// A blazingly fast file watcher that executes commands when files change
 #[derive(Parser, Debug)]
 #[clap(author, version, about)]
-struct Args {
+struct CliArgs {
     /// The command to execute when files change
     #[clap(required = false)]
     command: Vec<String>,
@@ -76,89 +75,31 @@ struct Args {
     bench: bool,
 }
 
-/// Configuration file format
-#[derive(Debug, Serialize, Deserialize)]
-struct Config {
-    command: Vec<String>,
-    watch: Option<Vec<String>>,
-    ext: Option<String>,
-    pattern: Option<Vec<String>>,
-    ignore: Option<Vec<String>>,
-    debounce: Option<u64>,
-    initial: Option<bool>,
-    clear: Option<bool>,
-    restart: Option<bool>,
-    stats: Option<bool>,
-    stats_interval: Option<u64>,
-}
-
-struct CommandRunner {
-    command: Vec<String>,
-    restart: bool,
-    clear: bool,
-    current_process: Option<Child>,
-}
-
-impl CommandRunner {
-    fn new(command: Vec<String>, restart: bool, clear: bool) -> Self {
-        Self {
-            command,
-            restart,
-            clear,
-            current_process: None,
+impl From<CliArgs> for Args {
+    fn from(cli: CliArgs) -> Self {
+        Args {
+            command: cli.command,
+            watch: cli.watch,
+            ext: cli.ext,
+            pattern: cli.pattern,
+            ignore: cli.ignore,
+            debounce: cli.debounce,
+            initial: cli.initial,
+            clear: cli.clear,
+            restart: cli.restart,
+            stats: cli.stats,
+            stats_interval: cli.stats_interval,
+            bench: cli.bench,
+            config: cli.config,
         }
     }
-
-    fn run(&mut self) -> Result<()> {
-        // Kill previous process if restart mode is enabled
-        if self.restart {
-            if let Some(ref mut child) = self.current_process {
-                let _ = child.kill();
-                let _ = child.wait();
-            }
-        }
-
-        // Clear console if requested
-        if self.clear {
-            print!("\x1B[2J\x1B[1;1H");
-        }
-
-        // Simple feedback for command execution
-        println!(
-            "{} {}",
-            "▶️ Running:".bright_blue(),
-            self.command.join(" ").bright_yellow()
-        );
-
-        let child = if cfg!(target_os = "windows") {
-            Command::new("cmd").arg("/C").args(&self.command).spawn()
-        } else {
-            Command::new("sh")
-                .arg("-c")
-                .arg(self.command.join(" "))
-                .spawn()
-        }
-        .context("Failed to execute command")?;
-
-        if self.restart {
-            self.current_process = Some(child);
-        } else {
-            let status = child.wait_with_output()?;
-            if !status.status.success() {
-                println!(
-                    "{} {}",
-                    "Command exited with code:".bright_red(),
-                    status.status
-                );
-            }
-        }
-
-        Ok(())
-    }
 }
+
+
 
 fn main() -> Result<()> {
-    let mut args = Args::parse();
+    let cli_args = CliArgs::parse();
+    let mut args: Args = cli_args.into();
 
     // Load configuration file if specified
     if let Some(config_path) = &args.config {
@@ -172,9 +113,7 @@ fn main() -> Result<()> {
     }
 
     // Validate that we have a command to run
-    if args.command.is_empty() {
-        anyhow::bail!("No command specified. Use CLI arguments or a config file.");
-    }
+    flash_watcher::validate_args(&args)?;
 
     println!("{}", "🔥 Flash watching for changes...".bright_green());
 
@@ -196,19 +135,8 @@ fn main() -> Result<()> {
     }
 
     // Compile glob patterns for better filtering
-    let include_patterns = args
-        .pattern
-        .iter()
-        .map(|p| glob::Pattern::new(p))
-        .collect::<Result<Vec<_>, _>>()
-        .context("Invalid glob pattern")?;
-
-    let ignore_patterns = args
-        .ignore
-        .iter()
-        .map(|p| glob::Pattern::new(p))
-        .collect::<Result<Vec<_>, _>>()
-        .context("Invalid ignore pattern")?;
+    let include_patterns = compile_patterns(&args.pattern)?;
+    let ignore_patterns = compile_patterns(&args.ignore)?;
 
     // Create a command runner
     let mut runner = CommandRunner::new(args.command.clone(), args.restart, args.clear);
@@ -276,139 +204,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn run_benchmarks() -> Result<()> {
-    println!("{}", "Running benchmarks...".bright_green());
-    println!(
-        "{}",
-        "This will compare Flash with other file watchers.".bright_yellow()
-    );
 
-    // Check if we should run real benchmarks or show sample data
-    let has_criterion = Command::new("cargo")
-        .args(["bench", "--bench", "file_watcher", "--help"])
-        .output()
-        .map(|output| output.status.success())
-        .unwrap_or(false);
-
-    if has_criterion {
-        // Attempt to run real benchmarks
-        println!(
-            "{}",
-            "Running real benchmarks (this may take a few minutes)...".bright_blue()
-        );
-
-        let status = Command::new("cargo")
-            .args(["bench", "--bench", "file_watcher"])
-            .status()
-            .context("Failed to run benchmarks")?;
-
-        if !status.success() {
-            println!(
-                "{}",
-                "Benchmark run failed, showing sample data instead...".bright_yellow()
-            );
-            show_sample_results();
-        }
-    } else {
-        // No criterion benchmarks available, show sample data
-        println!(
-            "{}",
-            "No benchmark suite detected, showing sample data...".bright_yellow()
-        );
-        show_sample_results();
-    }
-
-    Ok(())
-}
-
-fn show_sample_results() {
-    // Create benchmark results with sample data
-    let results = BenchResults::with_sample_data();
-
-    // Display beautiful benchmark report
-    results.print_report();
-
-    println!(
-        "\n{}",
-        "Note: These are simulated results for demonstration.".bright_yellow()
-    );
-    println!(
-        "{}",
-        "Run 'cargo bench --bench file_watcher' for real benchmarks.".bright_blue()
-    );
-}
-
-fn load_config(path: &str) -> Result<Config> {
-    let content =
-        fs::read_to_string(path).context(format!("Failed to read config file: {}", path))?;
-
-    serde_yaml::from_str(&content).context(format!("Failed to parse config file: {}", path))
-}
-
-fn merge_config(args: &mut Args, config: Config) {
-    // Only use config values when CLI args are not provided
-    if args.command.is_empty() && !config.command.is_empty() {
-        args.command = config.command;
-    }
-
-    if args.watch.len() == 1 && args.watch[0] == "." {
-        if let Some(watch_dirs) = config.watch {
-            args.watch = watch_dirs;
-        }
-    }
-
-    if args.ext.is_none() {
-        args.ext = config.ext;
-    }
-
-    if args.pattern.is_empty() {
-        if let Some(patterns) = config.pattern {
-            args.pattern = patterns;
-        }
-    }
-
-    if args.ignore.is_empty() {
-        if let Some(ignores) = config.ignore {
-            args.ignore = ignores;
-        }
-    }
-
-    if args.debounce == 100 {
-        if let Some(debounce) = config.debounce {
-            args.debounce = debounce;
-        }
-    }
-
-    if !args.initial {
-        if let Some(initial) = config.initial {
-            args.initial = initial;
-        }
-    }
-
-    if !args.clear {
-        if let Some(clear) = config.clear {
-            args.clear = clear;
-        }
-    }
-
-    if !args.restart {
-        if let Some(restart) = config.restart {
-            args.restart = restart;
-        }
-    }
-
-    if !args.stats {
-        if let Some(stats) = config.stats {
-            args.stats = stats;
-        }
-    }
-
-    if args.stats_interval == 10 {
-        if let Some(interval) = config.stats_interval {
-            args.stats_interval = interval;
-        }
-    }
-}
 
 fn setup_watcher(
     args: &Args,
@@ -561,70 +357,6 @@ fn setup_watcher(
     Ok(())
 }
 
-/// Check if a directory should be skipped based on ignore patterns
-fn should_skip_dir(path: &Path, ignore_patterns: &[String]) -> bool {
-    for pattern_str in ignore_patterns {
-        // Try to compile the pattern
-        if let Ok(pattern) = glob::Pattern::new(pattern_str) {
-            if pattern.matches_path(path) {
-                return true;
-            }
-        }
-    }
-    false
-}
 
-// Make the path filtering function public so it can be tested separately
-pub fn should_process_path(
-    path: &Path,
-    extensions: &Option<String>,
-    include_patterns: &[Pattern],
-    ignore_patterns: &[Pattern],
-) -> bool {
-    // Check ignore patterns - both exact path match and parent directory matches
-    for pattern in ignore_patterns {
-        // Try direct path matching first
-        if pattern.matches_path(path) {
-            return false;
-        }
 
-        // Also check if any parent directory matches the ignore pattern
-        // This helps with patterns like "**/node_modules/**"
-        let mut current = path;
-        while let Some(parent) = current.parent() {
-            if pattern.matches_path(parent) {
-                return false;
-            }
-            current = parent;
-        }
-    }
 
-    // If we have include patterns, the path must match at least one
-    if !include_patterns.is_empty() {
-        let mut matches = false;
-        for pattern in include_patterns {
-            if pattern.matches_path(path) {
-                matches = true;
-                break;
-            }
-        }
-        if !matches {
-            return false;
-        }
-    }
-
-    // If no extensions filter is specified, process all files
-    let extensions = match extensions {
-        Some(ext) => ext,
-        None => return true,
-    };
-
-    // Check file extension
-    if let Some(ext) = path.extension() {
-        if let Some(ext_str) = ext.to_str() {
-            return extensions.split(',').any(|e| e.trim() == ext_str);
-        }
-    }
-
-    false
-}
