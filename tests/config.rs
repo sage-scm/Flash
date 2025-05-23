@@ -27,6 +27,7 @@ mod tests {
             stats_interval: 10,
             bench: false,
             config: None,
+            fast: false,
         }
     }
 
@@ -126,6 +127,7 @@ stats_interval: 5
             stats_interval: 15, // Not default
             bench: false,
             config: None,
+            fast: false,
         };
 
         let config = Config {

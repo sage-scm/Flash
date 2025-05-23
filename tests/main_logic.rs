@@ -158,6 +158,7 @@ stats_interval: 999
             stats_interval: 5, // Not default 10, should take precedence
             bench: false,
             config: None,
+            fast: false,
         };
 
         let original_args = args.clone();

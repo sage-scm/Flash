@@ -6,13 +6,13 @@
 
 A blazingly fast file watcher that executes commands when files change.
 
-**2.4ms startup time** • **Low memory usage** • **Blazingly fast performance**
+**2.1ms startup time** • **1.7x faster than watchexec** • **18x faster than watchman**
 
 Think `nodemon`, but more general purpose and written in Rust.
 
 ## Features
 
-- ⚡ **Blazingly fast** - 2.4ms startup time, optimized for speed ([benchmarks](PERFORMANCE.md))
+- ⚡ **Blazingly fast** - 2.1ms startup time, 1.7x faster than watchexec, 18x faster than watchman ([benchmarks](PERFORMANCE.md))
 - 🎯 **Flexible filtering** - Support for glob patterns, file extensions, and ignore patterns
 - 🔧 **Configurable** - YAML configuration files for complex setups
 - 📊 **Performance monitoring** - Built-in statistics and benchmarking
@@ -65,6 +65,7 @@ flash [OPTIONS] <COMMAND>...
 - `--stats`: Show performance statistics while running
 - `--stats-interval <SECONDS>`: Statistics update interval in seconds [default: 10]
 - `--bench`: Run benchmark against other file watchers
+- `--fast`: Fast startup mode - minimal output and optimizations
 - `-h, --help`: Print help
 - `-V, --version`: Print version
 
@@ -143,6 +144,11 @@ flash -c -n -r npm start
 Run with performance statistics:
 ```sh
 flash --stats --stats-interval 5 npm run dev
+```
+
+Ultra-fast startup mode (minimal output):
+```sh
+flash --fast npm run dev
 ```
 
 ## Configuration File

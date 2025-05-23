@@ -25,6 +25,7 @@ mod tests {
             stats_interval: 5,
             bench: false,
             config: Some("config.yaml".to_string()),
+            fast: false,
         };
 
         // Test that all fields are properly set

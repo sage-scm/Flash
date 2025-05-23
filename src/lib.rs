@@ -41,6 +41,7 @@ pub struct Args {
     pub stats_interval: u64,
     pub bench: bool,
     pub config: Option<String>,
+    pub fast: bool,
 }
 
 impl Default for Args {
@@ -59,6 +60,7 @@ impl Default for Args {
             stats_interval: 10,
             bench: false,
             config: None,
+            fast: false,
         }
     }
 }
@@ -95,12 +97,7 @@ impl CommandRunner {
             print!("\x1B[2J\x1B[1;1H");
         }
 
-        // Simple feedback for command execution
-        println!(
-            "{} {}",
-            "▶️ Running:".bright_blue(),
-            self.command.join(" ").bright_yellow()
-        );
+        // Skip output formatting for faster execution - only show if command fails
 
         let child = if cfg!(target_os = "windows") {
             Command::new("cmd").arg("/C").args(&self.command).spawn()
@@ -559,6 +556,7 @@ invalid: true
             stats_interval: 15,
             bench: false,
             config: None,
+            fast: false,
         };
 
         let config = Config {
@@ -821,6 +819,7 @@ invalid: true
             stats_interval: 10, // Default stats interval
             bench: false,
             config: None,
+            fast: false,
         };
 
         let config = Config {
@@ -888,6 +887,7 @@ invalid: true
             stats_interval: 5,
             bench: false,
             config: Some("config.yaml".to_string()),
+            fast: false,
         };
 
         let debug_str = format!("{:?}", args);

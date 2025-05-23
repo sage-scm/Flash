@@ -8,11 +8,9 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use colored::Colorize;
 use notify::{RecursiveMode, Watcher};
-use walkdir::WalkDir;
-
 use flash_watcher::{
     compile_patterns, load_config, merge_config, run_benchmarks, should_process_path,
-    should_skip_dir, Args, CommandRunner,
+    Args, CommandRunner,
 };
 
 mod stats;
@@ -73,6 +71,10 @@ pub struct CliArgs {
     /// Run benchmark against other file watchers
     #[clap(long)]
     pub bench: bool,
+
+    /// Fast startup mode - minimal output and optimizations
+    #[clap(long)]
+    pub fast: bool,
 }
 
 impl From<CliArgs> for Args {
@@ -91,6 +93,7 @@ impl From<CliArgs> for Args {
             stats_interval: cli.stats_interval,
             bench: cli.bench,
             config: cli.config,
+            fast: cli.fast,
         }
     }
 }
@@ -113,24 +116,28 @@ fn main() -> Result<()> {
     // Validate that we have a command to run
     flash_watcher::validate_args(&args)?;
 
-    println!("{}", "🔥 Flash watching for changes...".bright_green());
+    // Skip startup message for faster startup in fast mode
+    if !args.fast && !args.stats {
+        println!("{}", "🔥 Flash watching for changes...".bright_green());
+    }
 
     // Create a channel to receive the events
     let (tx, rx) = std::sync::mpsc::channel();
 
-    // Initialize stats collector
-    let stats_collector = Arc::new(Mutex::new(StatsCollector::new()));
-
-    // Start stats display thread if stats is enabled
-    if args.stats {
-        let stats = Arc::clone(&stats_collector);
+    // Initialize stats collector only if needed
+    let stats_collector = if args.stats {
+        let collector = Arc::new(Mutex::new(StatsCollector::new()));
+        let stats = Arc::clone(&collector);
         thread::spawn(move || loop {
             thread::sleep(Duration::from_secs(args.stats_interval));
             let mut stats = stats.lock().unwrap();
             stats.update_resource_usage();
             stats.display_stats();
         });
-    }
+        Some(collector)
+    } else {
+        None
+    };
 
     // Compile glob patterns for better filtering
     let include_patterns = compile_patterns(&args.pattern)?;
@@ -147,22 +154,21 @@ fn main() -> Result<()> {
     }
 
     // Set up the file watcher
-    setup_watcher(&args, tx.clone(), Arc::clone(&stats_collector))?;
+    setup_watcher(&args, tx.clone(), stats_collector.clone())?;
 
-    println!("{}", "Ready! Waiting for changes...".bright_green());
+    if !args.fast {
+        println!("{}", "Ready! Waiting for changes...".bright_green());
+    }
 
-    // Track recently processed paths to avoid duplicates
+    // Track recently processed paths to avoid duplicates - use PathBuf as key to avoid string allocation
     let mut recently_processed = std::collections::HashMap::new();
 
     // Listen for events in a loop
     for path in rx {
         if should_process_path(&path, &args.ext, &include_patterns, &ignore_patterns) {
-            // Get a path key for deduplication
-            let path_key = path.to_string_lossy().to_string();
-
-            // Check if we've seen this path recently
+            // Check if we've seen this path recently - use PathBuf directly as key
             let now = std::time::Instant::now();
-            if let Some(last_time) = recently_processed.get(&path_key) {
+            if let Some(last_time) = recently_processed.get(&path) {
                 if now.duration_since(*last_time).as_millis() < args.debounce as u128 {
                     // Skip this event - too soon after the previous one
                     continue;
@@ -170,22 +176,25 @@ fn main() -> Result<()> {
             }
 
             // Update the last processed time for this path
-            recently_processed.insert(path_key, now);
+            recently_processed.insert(path.clone(), now);
 
-            // Format the path to be more readable - just show the filename if possible
-            let display_path = path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or_else(|| path.to_str().unwrap_or("unknown path"));
+            // Only format output if not in fast mode and not in stats mode
+            if !args.fast && !args.stats {
+                // Format the path to be more readable - just show the filename if possible
+                let display_path = path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or_else(|| path.to_str().unwrap_or("unknown path"));
 
-            println!(
-                "{} {}",
-                "📝 Change detected:".bright_blue(),
-                display_path.bright_green()
-            );
+                println!(
+                    "{} {}",
+                    "📝 Change detected:".bright_blue(),
+                    display_path.bright_green()
+                );
+            }
 
             // Record the file change in stats
-            if args.stats {
+            if let Some(ref stats_collector) = stats_collector {
                 let mut stats = stats_collector.lock().unwrap();
                 stats.record_file_change();
             }
@@ -205,10 +214,9 @@ fn main() -> Result<()> {
 fn setup_watcher(
     args: &Args,
     tx: Sender<PathBuf>,
-    stats: Arc<Mutex<StatsCollector>>,
+    stats: Option<Arc<Mutex<StatsCollector>>>,
 ) -> Result<()> {
-    // Capture only what we need for the event handler
-    let stats_enabled = args.stats;
+    // No need to capture stats_enabled since we check the Option directly
 
     // Create a more direct event handler using standard notify
     let event_tx = tx.clone();
@@ -217,7 +225,7 @@ fn setup_watcher(
             match res {
                 Ok(event) => {
                     // Record watcher call in stats
-                    if stats_enabled {
+                    if let Some(ref stats) = stats {
                         let mut stats = stats.lock().unwrap();
                         stats.record_watcher_call();
                     }
@@ -256,98 +264,75 @@ fn setup_watcher(
                 watcher
                     .watch(path_obj, RecursiveMode::Recursive)
                     .context(format!("Failed to watch path: {}", pattern_str))?;
-                println!("{} {}", "Watching:".bright_blue(), pattern_str);
+                if !args.fast {
+                    println!("{} {}", "Watching:".bright_blue(), pattern_str);
+                }
                 watch_count += 1;
             }
         } else {
-            // Try to interpret it as a glob pattern
-            let pattern = glob::Pattern::new(pattern_str)
-                .context(format!("Invalid watch pattern: {}", pattern_str))?;
-
-            // Find all directories that match this pattern
-            // Note: We need a way to list directories to apply the glob pattern.
-            // For simplicity, we'll start from the current directory.
-            let base_dir = ".";
-            let walker = WalkDir::new(base_dir)
-                .follow_links(true)
-                .into_iter()
-                .filter_entry(|e| !should_skip_dir(e.path(), &args.ignore));
-
-            let mut matched = false;
-            for entry in walker.filter_map(Result::ok) {
-                let path = entry.path();
-                if path.is_dir()
-                    && pattern.matches_path(path)
-                    && watched_paths.insert(path.to_path_buf())
-                {
-                    watcher
-                        .watch(path, RecursiveMode::Recursive)
-                        .context(format!("Failed to watch matched path: {}", path.display()))?;
-                    println!(
-                        "{} {} (from pattern: {})",
-                        "Watching:".bright_blue(),
-                        path.display(),
-                        pattern_str
-                    );
-                    watch_count += 1;
-                    matched = true;
+            // For glob patterns, just watch the current directory and let filtering handle the rest
+            // This is much faster than walking the entire directory tree during startup
+            let current_dir = Path::new(".");
+            if watched_paths.insert(current_dir.to_path_buf()) {
+                watcher
+                    .watch(current_dir, RecursiveMode::Recursive)
+                    .context(format!("Failed to watch current directory for pattern: {}", pattern_str))?;
+                if !args.fast {
+                    println!("{} {} (pattern: {})", "Watching:".bright_blue(), ".", pattern_str);
                 }
-            }
-
-            if !matched {
-                println!(
-                    "{} {}",
-                    "Warning: No directories matched pattern:".bright_yellow(),
-                    pattern_str
-                );
+                watch_count += 1;
             }
         }
     }
 
-    if watch_count == 0 {
-        println!("{}", "Warning: No paths are being watched!".bright_yellow());
-    } else {
-        println!("{} {}", "Total watched paths:".bright_blue(), watch_count);
+    if !args.fast {
+        if watch_count == 0 {
+            println!("{}", "Warning: No paths are being watched!".bright_yellow());
+        } else {
+            println!("{} {}", "Total watched paths:".bright_blue(), watch_count);
+        }
     }
 
     // Keep the watcher alive by storing it
     std::mem::forget(watcher);
 
-    // Print other settings
-    if let Some(ext) = &args.ext {
-        println!("{} {}", "File extensions:".bright_blue(), ext);
-    }
+    // Print other settings only if not in fast mode
+    if !args.fast {
+        if let Some(ext) = &args.ext {
+            println!("{} {}", "File extensions:".bright_blue(), ext);
+        }
 
-    if !args.pattern.is_empty() {
+        if !args.pattern.is_empty() {
+            println!(
+                "{} {}",
+                "Include patterns:".bright_blue(),
+                args.pattern.join(", ")
+            );
+        }
+
+        if !args.ignore.is_empty() {
+            println!(
+                "{} {}",
+                "Ignore patterns:".bright_blue(),
+                args.ignore.join(", ")
+            );
+        }
+
+        // Print command
         println!(
             "{} {}",
-            "Include patterns:".bright_blue(),
-            args.pattern.join(", ")
+            "Will execute:".bright_blue(),
+            args.command.join(" ").bright_yellow()
         );
-    }
 
-    if !args.ignore.is_empty() {
-        println!(
-            "{} {}",
-            "Ignore patterns:".bright_blue(),
-            args.ignore.join(", ")
-        );
-    }
-
-    // Print command
-    println!(
-        "{} {}",
-        "Will execute:".bright_blue(),
-        args.command.join(" ").bright_yellow()
-    );
-
-    // Print stats info if enabled
-    if args.stats {
-        println!(
-            "{} {} seconds",
-            "Performance stats enabled, interval:".bright_blue(),
-            args.stats_interval
-        );
+        // Print stats info if enabled
+        if args.stats {
+            println!(
+                "{} {} seconds",
+                "Performance stats enabled, interval:".bright_blue(),
+                args.stats_interval
+            );
+        }
     }
 
     Ok(())

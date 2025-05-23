@@ -38,6 +38,7 @@ mod tests {
             stats_interval: 5,
             bench: true,
             config: Some("config.yaml".to_string()),
+            fast: false,
         };
 
         let args2 = args1.clone();
