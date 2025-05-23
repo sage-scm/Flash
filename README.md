@@ -1,6 +1,6 @@
 # Flash ⚡
 
-[![CI](https://github.com/crazywolf132/flash/workflows/CI/badge.svg)](https://github.com/crazywolf132/flash/actions)
+[![CI](https://github.com/sage-scm/Flash/workflows/CI/badge.svg)](https://github.com/sage-scm/Flash/actions)
 [![Crates.io](https://img.shields.io/crates/v/flash.svg)](https://crates.io/crates/flash)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -29,14 +29,14 @@ cargo install flash
 ### From Source
 
 ```sh
-git clone https://github.com/crazywolf132/flash.git
-cd flash
+git clone https://github.com/sage-scm/Flash.git
+cd Flash
 cargo install --path .
 ```
 
 ### Pre-built Binaries
 
-Download pre-built binaries from the [releases page](https://github.com/crazywolf132/flash/releases).
+Download pre-built binaries from the [releases page](https://github.com/sage-scm/Flash/releases).
 
 ## Usage
 
@@ -214,9 +214,9 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for deta
 ## Support
 
 - 📖 **Documentation**: Check the [README](README.md) and [examples](example.flash.yaml)
-- 🐛 **Bug Reports**: [Open an issue](https://github.com/crazywolf132/flash/issues/new)
-- 💡 **Feature Requests**: [Open an issue](https://github.com/crazywolf132/flash/issues/new)
-- 💬 **Questions**: [Start a discussion](https://github.com/crazywolf132/flash/discussions)
+- 🐛 **Bug Reports**: [Open an issue](https://github.com/sage-scm/Flash/issues/new)
+- 💡 **Feature Requests**: [Open an issue](https://github.com/sage-scm/Flash/issues/new)
+- 💬 **Questions**: [Start a discussion](https://github.com/sage-scm/Flash/discussions)
 
 ## License
 
