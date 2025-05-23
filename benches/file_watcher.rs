@@ -28,8 +28,11 @@ impl Watcher {
     fn command(&self, dir: &Path) -> Option<Command> {
         match self {
             Watcher::Flash => {
-                let mut cmd =
-                    Command::new(std::env::current_dir().ok()?.join("target/release/flash-watcher"));
+                let mut cmd = Command::new(
+                    std::env::current_dir()
+                        .ok()?
+                        .join("target/release/flash-watcher"),
+                );
                 cmd.args(["--watch", dir.to_str()?]);
                 cmd.arg("echo");
                 cmd.arg("change");
@@ -111,8 +114,8 @@ fn bench_startup(c: &mut Criterion) {
                             .unwrap();
                         sleep(Duration::from_millis(STARTUP_WAIT_MS));
                         let _ = child.kill();
-                        let elapsed = start.elapsed();
-                        elapsed
+                        let _ = child.wait();
+                        start.elapsed()
                     })
                 },
             );
@@ -162,6 +165,7 @@ fn bench_memory(c: &mut Criterion) {
                             / 1024; // Convert to KB
 
                         let _ = child.kill();
+                        let _ = child.wait();
                         memory
                     })
                 },
@@ -220,6 +224,7 @@ fn bench_change_detection(c: &mut Criterion) {
                         }
 
                         let _ = child.kill();
+                        let _ = child.wait();
 
                         // Return average latency in milliseconds
                         total_latency.as_millis() as u64 / FILE_CHANGES as u64
@@ -275,6 +280,7 @@ fn bench_idle_cpu(c: &mut Criterion) {
                             .unwrap_or(0.0);
 
                         let _ = child.kill();
+                        let _ = child.wait();
                         cpu_usage
                     })
                 },

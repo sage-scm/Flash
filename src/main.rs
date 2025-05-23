@@ -484,7 +484,10 @@ fn setup_watcher(
             let mut matched = false;
             for entry in walker.filter_map(Result::ok) {
                 let path = entry.path();
-                if path.is_dir() && pattern.matches_path(path) && watched_paths.insert(path.to_path_buf()) {
+                if path.is_dir()
+                    && pattern.matches_path(path)
+                    && watched_paths.insert(path.to_path_buf())
+                {
                     watcher
                         .watch(path, RecursiveMode::Recursive)
                         .context(format!("Failed to watch matched path: {}", path.display()))?;

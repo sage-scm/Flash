@@ -210,10 +210,10 @@ stats_interval: 5
         assert_eq!(args.pattern, vec!["src/**/*.rs"]);
         assert_eq!(args.ignore, vec!["target"]);
         assert_eq!(args.debounce, 200);
-        assert_eq!(args.initial, true);
-        assert_eq!(args.clear, true);
-        assert_eq!(args.restart, true);
-        assert_eq!(args.stats, true);
+        assert!(args.initial);
+        assert!(args.clear);
+        assert!(args.restart);
+        assert!(args.stats);
         assert_eq!(args.stats_interval, 5);
     }
 

@@ -21,11 +21,9 @@ impl CommandRunner {
     // Simplified run method for testing that doesn't actually spawn processes
     fn dry_run(&mut self) -> Result<(), String> {
         // In a real implementation, this would kill previous processes in restart mode
-        if self.restart {
-            if self.current_process.is_some() {
-                // This would kill the previous process
-                self.current_process = None;
-            }
+        if self.restart && self.current_process.is_some() {
+            // This would kill the previous process
+            self.current_process = None;
         }
 
         // Simulate successful command execution
@@ -58,8 +56,8 @@ mod tests {
         let runner = CommandRunner::new(cmd.clone(), true, false);
 
         assert_eq!(runner.command, cmd);
-        assert_eq!(runner.restart, true);
-        assert_eq!(runner.clear, false);
+        assert!(runner.restart);
+        assert!(!runner.clear);
         assert!(runner.current_process.is_none());
     }
 
