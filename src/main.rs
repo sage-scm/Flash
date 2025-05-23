@@ -11,8 +11,8 @@ use notify::{RecursiveMode, Watcher};
 use walkdir::WalkDir;
 
 use flash_watcher::{
-    load_config, merge_config, should_process_path, run_benchmarks,
-    compile_patterns, should_skip_dir, Args, CommandRunner
+    compile_patterns, load_config, merge_config, run_benchmarks, should_process_path,
+    should_skip_dir, Args, CommandRunner,
 };
 
 mod stats;
@@ -21,58 +21,58 @@ use stats::StatsCollector;
 /// A blazingly fast file watcher that executes commands when files change
 #[derive(Parser, Debug)]
 #[clap(author, version, about)]
-struct CliArgs {
+pub struct CliArgs {
     /// The command to execute when files change
     #[clap(required = false)]
-    command: Vec<String>,
+    pub command: Vec<String>,
 
     /// Paths/patterns to watch (supports glob patterns like "src/**/*.js")
     #[clap(short, long, default_value = ".")]
-    watch: Vec<String>,
+    pub watch: Vec<String>,
 
     /// File extensions to watch (e.g., "js,jsx,ts,tsx")
     #[clap(short, long)]
-    ext: Option<String>,
+    pub ext: Option<String>,
 
     /// Specific glob patterns to include (e.g., "src/**/*.{js,ts}")
     #[clap(short = 'p', long)]
-    pattern: Vec<String>,
+    pub pattern: Vec<String>,
 
     /// Glob patterns to ignore (e.g., "**/node_modules/**", "**/.git/**")
     #[clap(short, long)]
-    ignore: Vec<String>,
+    pub ignore: Vec<String>,
 
     /// Debounce time in milliseconds
     #[clap(short, long, default_value = "100")]
-    debounce: u64,
+    pub debounce: u64,
 
     /// Run command on startup
     #[clap(short = 'n', long)]
-    initial: bool,
+    pub initial: bool,
 
     /// Clear console before each command run
     #[clap(short, long)]
-    clear: bool,
+    pub clear: bool,
 
     /// Use configuration from file
     #[clap(short = 'f', long)]
-    config: Option<String>,
+    pub config: Option<String>,
 
     /// Restart long-running processes instead of spawning new ones
     #[clap(short, long)]
-    restart: bool,
+    pub restart: bool,
 
     /// Show performance statistics
     #[clap(long)]
-    stats: bool,
+    pub stats: bool,
 
     /// Statistics update interval in seconds
     #[clap(long, default_value = "10")]
-    stats_interval: u64,
+    pub stats_interval: u64,
 
     /// Run benchmark against other file watchers
     #[clap(long)]
-    bench: bool,
+    pub bench: bool,
 }
 
 impl From<CliArgs> for Args {
@@ -94,8 +94,6 @@ impl From<CliArgs> for Args {
         }
     }
 }
-
-
 
 fn main() -> Result<()> {
     let cli_args = CliArgs::parse();
@@ -203,8 +201,6 @@ fn main() -> Result<()> {
 
     Ok(())
 }
-
-
 
 fn setup_watcher(
     args: &Args,
@@ -356,7 +352,3 @@ fn setup_watcher(
 
     Ok(())
 }
-
-
-
-

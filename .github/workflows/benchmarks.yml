@@ -7,7 +7,7 @@ on:
       upload_results:
         description: 'Upload benchmark results as artifacts'
         required: false
-        default: 'true'
+        default: true
         type: boolean
 
   # Run benchmarks on releases

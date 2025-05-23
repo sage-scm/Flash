@@ -51,4 +51,76 @@ mod tests {
         assert!(result.is_ok());
         assert!(runner.current_process.is_none());
     }
+
+    #[test]
+    fn test_command_runner_run_simple_command() {
+        let mut runner =
+            CommandRunner::new(vec!["echo".to_string(), "hello".to_string()], false, false);
+        let result = runner.run();
+
+        // Should succeed for simple echo command
+        assert!(result.is_ok());
+        assert!(runner.current_process.is_none()); // Not in restart mode
+    }
+
+    #[test]
+    fn test_command_runner_run_with_restart() {
+        let mut runner =
+            CommandRunner::new(vec!["echo".to_string(), "hello".to_string()], true, false);
+        let result = runner.run();
+
+        // Should succeed and store the process
+        assert!(result.is_ok());
+        // In restart mode, process should be stored (though it may have finished quickly)
+    }
+
+    #[test]
+    fn test_command_runner_run_with_clear() {
+        let mut runner =
+            CommandRunner::new(vec!["echo".to_string(), "hello".to_string()], false, true);
+        let result = runner.run();
+
+        // Should succeed even with clear flag
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_command_runner_run_invalid_command() {
+        let mut runner =
+            CommandRunner::new(vec!["nonexistent_command_12345".to_string()], false, false);
+        let result = runner.run();
+
+        // The run method itself succeeds, but the command fails with non-zero exit code
+        // The error is printed but not returned as an error from the run method
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_command_runner_run_failing_command() {
+        // Use a command that will fail (exit with non-zero status)
+        let mut runner = CommandRunner::new(
+            vec!["sh".to_string(), "-c".to_string(), "exit 1".to_string()],
+            false,
+            false,
+        );
+        let result = runner.run();
+
+        // The run should succeed (no error), but the command itself fails
+        // The failure is just printed, not returned as an error
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_command_runner_restart_with_multiple_runs() {
+        let mut runner =
+            CommandRunner::new(vec!["sleep".to_string(), "0.1".to_string()], true, false);
+
+        // First run
+        let result1 = runner.run();
+        assert!(result1.is_ok());
+
+        // Second run should kill the first process and start a new one
+        let result2 = runner.run();
+        assert!(result2.is_ok());
+    }
 }

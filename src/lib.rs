@@ -144,8 +144,8 @@ impl CommandRunner {
 
 /// Load configuration from a YAML file
 pub fn load_config(path: &str) -> Result<Config> {
-    let content = std::fs::read_to_string(path)
-        .context(format!("Failed to read config file: {}", path))?;
+    let content =
+        std::fs::read_to_string(path).context(format!("Failed to read config file: {}", path))?;
 
     serde_yaml::from_str(&content).context(format!("Failed to parse config file: {}", path))
 }
@@ -291,7 +291,14 @@ pub fn run_benchmarks() -> Result<()> {
 
     // Check if benchmarks are available with the benchmarks feature
     let has_criterion = Command::new("cargo")
-        .args(["bench", "--features", "benchmarks", "--bench", "file_watcher", "--help"])
+        .args([
+            "bench",
+            "--features",
+            "benchmarks",
+            "--bench",
+            "file_watcher",
+            "--help",
+        ])
         .output()
         .map(|output| output.status.success())
         .unwrap_or(false);
@@ -304,7 +311,13 @@ pub fn run_benchmarks() -> Result<()> {
         );
 
         let status = Command::new("cargo")
-            .args(["bench", "--features", "benchmarks", "--bench", "file_watcher"])
+            .args([
+                "bench",
+                "--features",
+                "benchmarks",
+                "--bench",
+                "file_watcher",
+            ])
             .status()
             .context("Failed to run benchmarks")?;
 
@@ -378,8 +391,8 @@ pub fn format_display_path(path: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::NamedTempFile;
     use std::io::Write;
+    use tempfile::NamedTempFile;
 
     fn create_test_config_file(content: &str) -> NamedTempFile {
         let mut file = NamedTempFile::new().unwrap();
@@ -414,7 +427,8 @@ mod tests {
 
     #[test]
     fn test_command_runner_dry_run_success() {
-        let mut runner = CommandRunner::new(vec!["echo".to_string(), "test".to_string()], false, false);
+        let mut runner =
+            CommandRunner::new(vec!["echo".to_string(), "test".to_string()], false, false);
         assert!(runner.dry_run().is_ok());
     }
 
@@ -458,10 +472,19 @@ stats_interval: 5
         let config = load_config(file.path().to_str().unwrap()).unwrap();
 
         assert_eq!(config.command, vec!["npm", "run", "dev"]);
-        assert_eq!(config.watch, Some(vec!["src".to_string(), "public".to_string()]));
+        assert_eq!(
+            config.watch,
+            Some(vec!["src".to_string(), "public".to_string()])
+        );
         assert_eq!(config.ext, Some("js,jsx,ts,tsx".to_string()));
-        assert_eq!(config.pattern, Some(vec!["src/**/*.{js,jsx,ts,tsx}".to_string()]));
-        assert_eq!(config.ignore, Some(vec!["node_modules".to_string(), ".git".to_string()]));
+        assert_eq!(
+            config.pattern,
+            Some(vec!["src/**/*.{js,jsx,ts,tsx}".to_string()])
+        );
+        assert_eq!(
+            config.ignore,
+            Some(vec!["node_modules".to_string(), ".git".to_string()])
+        );
         assert_eq!(config.debounce, Some(200));
         assert_eq!(config.initial, Some(true));
         assert_eq!(config.clear, Some(true));
@@ -566,7 +589,12 @@ invalid: true
         let include_patterns = vec![];
         let ignore_patterns = vec![];
 
-        assert!(should_process_path(path, &ext_filter, &include_patterns, &ignore_patterns));
+        assert!(should_process_path(
+            path,
+            &ext_filter,
+            &include_patterns,
+            &ignore_patterns
+        ));
     }
 
     #[test]
@@ -576,7 +604,12 @@ invalid: true
         let include_patterns = vec![];
         let ignore_patterns = vec![];
 
-        assert!(should_process_path(path, &ext_filter, &include_patterns, &ignore_patterns));
+        assert!(should_process_path(
+            path,
+            &ext_filter,
+            &include_patterns,
+            &ignore_patterns
+        ));
     }
 
     #[test]
@@ -586,7 +619,12 @@ invalid: true
         let include_patterns = vec![];
         let ignore_patterns = vec![];
 
-        assert!(!should_process_path(path, &ext_filter, &include_patterns, &ignore_patterns));
+        assert!(!should_process_path(
+            path,
+            &ext_filter,
+            &include_patterns,
+            &ignore_patterns
+        ));
     }
 
     #[test]
@@ -596,7 +634,12 @@ invalid: true
         let include_patterns = vec![];
         let ignore_patterns = vec![Pattern::new("**/node_modules/**").unwrap()];
 
-        assert!(!should_process_path(path, &ext_filter, &include_patterns, &ignore_patterns));
+        assert!(!should_process_path(
+            path,
+            &ext_filter,
+            &include_patterns,
+            &ignore_patterns
+        ));
     }
 
     #[test]
@@ -606,7 +649,12 @@ invalid: true
         let include_patterns = vec![Pattern::new("src/**/*.js").unwrap()];
         let ignore_patterns = vec![];
 
-        assert!(should_process_path(path, &ext_filter, &include_patterns, &ignore_patterns));
+        assert!(should_process_path(
+            path,
+            &ext_filter,
+            &include_patterns,
+            &ignore_patterns
+        ));
     }
 
     #[test]
@@ -616,7 +664,12 @@ invalid: true
         let include_patterns = vec![Pattern::new("src/**/*.js").unwrap()];
         let ignore_patterns = vec![];
 
-        assert!(!should_process_path(path, &ext_filter, &include_patterns, &ignore_patterns));
+        assert!(!should_process_path(
+            path,
+            &ext_filter,
+            &include_patterns,
+            &ignore_patterns
+        ));
     }
 
     #[test]
@@ -625,7 +678,10 @@ invalid: true
         assert!(should_skip_dir(Path::new("node_modules"), &[]));
         assert!(should_skip_dir(Path::new("target"), &[]));
         assert!(should_skip_dir(Path::new("project/.git/hooks"), &[]));
-        assert!(should_skip_dir(Path::new("project/node_modules/package"), &[]));
+        assert!(should_skip_dir(
+            Path::new("project/node_modules/package"),
+            &[]
+        ));
     }
 
     #[test]
@@ -701,7 +757,142 @@ invalid: true
     fn test_format_display_path() {
         assert_eq!(format_display_path(Path::new("test.js")), "test.js");
         assert_eq!(format_display_path(Path::new("src/test.js")), "test.js");
-        assert_eq!(format_display_path(Path::new("/full/path/to/file.rs")), "file.rs");
+        assert_eq!(
+            format_display_path(Path::new("/full/path/to/file.rs")),
+            "file.rs"
+        );
         assert_eq!(format_display_path(Path::new(".")), ".");
+    }
+
+    #[test]
+    fn test_should_process_path_file_without_extension() {
+        let path = Path::new("Makefile");
+        let ext_filter = Some("js,ts".to_string());
+        let include_patterns = vec![];
+        let ignore_patterns = vec![];
+
+        // File without extension should be rejected when extension filter is present
+        assert!(!should_process_path(
+            path,
+            &ext_filter,
+            &include_patterns,
+            &ignore_patterns
+        ));
+    }
+
+    #[test]
+    fn test_should_process_path_extension_with_spaces() {
+        let path = Path::new("test.js");
+        let ext_filter = Some("js, ts, jsx ".to_string()); // Extensions with spaces
+        let include_patterns = vec![];
+        let ignore_patterns = vec![];
+
+        // Should handle extensions with spaces correctly
+        assert!(should_process_path(
+            path,
+            &ext_filter,
+            &include_patterns,
+            &ignore_patterns
+        ));
+    }
+
+    #[test]
+    fn test_should_skip_dir_invalid_glob_pattern() {
+        // Test with invalid glob pattern that can't be compiled
+        let invalid_patterns = vec!["[invalid".to_string()];
+
+        // Should not skip directories when pattern is invalid
+        assert!(!should_skip_dir(Path::new("some-dir"), &invalid_patterns));
+    }
+
+    #[test]
+    fn test_merge_config_edge_cases() {
+        let mut args = Args {
+            command: vec![],              // Empty command
+            watch: vec![".".to_string()], // Default watch
+            ext: None,
+            pattern: vec![],
+            ignore: vec![],
+            debounce: 100, // Default debounce
+            initial: false,
+            clear: false,
+            restart: false,
+            stats: false,
+            stats_interval: 10, // Default stats interval
+            bench: false,
+            config: None,
+        };
+
+        let config = Config {
+            command: vec![], // Empty command in config too
+            watch: None,
+            ext: None,
+            pattern: None,
+            ignore: None,
+            debounce: None,
+            initial: None,
+            clear: None,
+            restart: None,
+            stats: None,
+            stats_interval: None,
+        };
+
+        merge_config(&mut args, config);
+
+        // Args should remain unchanged when config has no values
+        assert!(args.command.is_empty());
+        assert_eq!(args.watch, vec!["."]);
+        assert_eq!(args.debounce, 100);
+        assert_eq!(args.stats_interval, 10);
+    }
+
+    #[test]
+    fn test_config_serialization_roundtrip() {
+        let original_config = Config {
+            command: vec!["cargo".to_string(), "test".to_string()],
+            watch: Some(vec!["src".to_string(), "tests".to_string()]),
+            ext: Some("rs".to_string()),
+            pattern: Some(vec!["**/*.rs".to_string()]),
+            ignore: Some(vec!["target".to_string()]),
+            debounce: Some(200),
+            initial: Some(true),
+            clear: Some(false),
+            restart: Some(true),
+            stats: Some(false),
+            stats_interval: Some(5),
+        };
+
+        // Serialize to YAML
+        let yaml = serde_yaml::to_string(&original_config).unwrap();
+
+        // Deserialize back
+        let deserialized_config: Config = serde_yaml::from_str(&yaml).unwrap();
+
+        // Should be identical
+        assert_eq!(original_config, deserialized_config);
+    }
+
+    #[test]
+    fn test_args_debug_format() {
+        let args = Args {
+            command: vec!["echo".to_string(), "test".to_string()],
+            watch: vec!["src".to_string()],
+            ext: Some("rs".to_string()),
+            pattern: vec!["*.rs".to_string()],
+            ignore: vec!["target".to_string()],
+            debounce: 200,
+            initial: true,
+            clear: false,
+            restart: true,
+            stats: false,
+            stats_interval: 5,
+            bench: false,
+            config: Some("config.yaml".to_string()),
+        };
+
+        let debug_str = format!("{:?}", args);
+        assert!(debug_str.contains("command"));
+        assert!(debug_str.contains("echo"));
+        assert!(debug_str.contains("test"));
     }
 }

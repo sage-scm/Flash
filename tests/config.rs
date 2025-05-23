@@ -1,6 +1,6 @@
+use flash_watcher::{load_config, merge_config, Args, Config};
 use std::io::Write;
 use tempfile::NamedTempFile;
-use flash_watcher::{load_config, merge_config, Args, Config};
 
 #[cfg(test)]
 mod tests {

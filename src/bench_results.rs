@@ -368,7 +368,10 @@ mod tests {
     fn test_bench_metric_display() {
         assert_eq!(format!("{}", BenchMetric::StartupTime), "Startup Time");
         assert_eq!(format!("{}", BenchMetric::MemoryUsage), "Memory Usage");
-        assert_eq!(format!("{}", BenchMetric::ChangeDetection), "Change Detection");
+        assert_eq!(
+            format!("{}", BenchMetric::ChangeDetection),
+            "Change Detection"
+        );
         assert_eq!(format!("{}", BenchMetric::CpuUsage), "CPU Usage");
     }
 }
