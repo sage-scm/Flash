@@ -70,23 +70,23 @@ echo -e "\n${BLUE}=== 4. COMPARISON WITH COMPETITORS ===${NC}"
 if command -v nodemon &> /dev/null; then
     echo -e "${YELLOW}Comparing with Nodemon...${NC}"
     nodemon_startup=$(hyperfine --warmup 2 --runs 5 'timeout 2s nodemon --help' 2>/dev/null | grep -o 'Time (mean ± σ):[^,]*' | grep -o '[0-9.]*' | head -1 || echo "100")
-    
+
     # Start nodemon for memory test
     timeout 10s nodemon --watch "$TEST_DIR/src" --exec 'echo change detected' > /dev/null 2>&1 &
     NODEMON_PID=$!
     sleep 2
-    
+
     if ps -p $NODEMON_PID > /dev/null 2>/dev/null; then
         nodemon_memory=$(ps -o rss= -p $NODEMON_PID 2>/dev/null || echo "50000")
     else
         nodemon_memory=50000  # Default estimate
     fi
-    
+
     kill $NODEMON_PID 2>/dev/null || true
-    
+
     startup_improvement=$(echo "scale=1; $nodemon_startup / $flash_startup" | bc -l 2>/dev/null || echo "N/A")
     memory_improvement=$(echo "scale=1; $nodemon_memory / $memory_kb" | bc -l 2>/dev/null || echo "N/A")
-    
+
     echo -e "${GREEN}  Nodemon startup: ${nodemon_startup}ms${NC}"
     echo -e "${GREEN}  Nodemon memory: ${nodemon_memory}KB${NC}"
     echo -e "${GREEN}  Flash is ${startup_improvement}x faster startup${NC}"
@@ -147,9 +147,9 @@ echo "  • Compact single binary"
 echo "  • Zero runtime dependencies"
 echo "  • Cross-platform compatibility"
 
-echo -e "\n${GREEN}✅ CLAIM VALIDATION: 'IMPOSSIBLY FAST'${NC}"
+echo -e "\n${GREEN}✅ CLAIM VALIDATION: 'BLAZINGLY FAST'${NC}"
 if [[ "$startup_claim" == "VALIDATED" && "$memory_claim" == "VALIDATED" ]]; then
-    echo -e "${GREEN}🎉 CLAIMS VALIDATED! Flash is indeed impossibly fast!${NC}"
+    echo -e "${GREEN}🎉 CLAIMS VALIDATED! Flash is indeed blazingly fast!${NC}"
 else
     echo -e "${YELLOW}⚠️  Some claims need validation. Consider optimizations.${NC}"
 fi

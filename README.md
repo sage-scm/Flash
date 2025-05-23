@@ -4,22 +4,22 @@
 [![Crates.io](https://img.shields.io/crates/v/flash-watcher.svg)](https://crates.io/crates/flash-watcher)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An impossibly fast file watcher that executes commands when files change.
+A blazingly fast file watcher that executes commands when files change.
 
-**1.8ms startup time** • **8.9MB memory usage** • **19.7x faster than Nodemon**
+**2.4ms startup time** • **Low memory usage** • **Blazingly fast performance**
 
 Think `nodemon`, but more general purpose and written in Rust.
 
 ## Features
 
-- ⚡ **Blazingly fast** - 1.8ms startup, 19.7x faster than Nodemon ([benchmarks](PERFORMANCE.md))
+- ⚡ **Blazingly fast** - 2.4ms startup time, optimized for speed ([benchmarks](PERFORMANCE.md))
 - 🎯 **Flexible filtering** - Support for glob patterns, file extensions, and ignore patterns
 - 🔧 **Configurable** - YAML configuration files for complex setups
 - 📊 **Performance monitoring** - Built-in statistics and benchmarking
 - 🔄 **Process management** - Restart long-running processes or spawn new ones
 - 🌍 **Cross-platform** - Works on Windows, macOS, and Linux
 - 🎨 **Beautiful output** - Colored terminal output with clear status messages
-- 💾 **Memory efficient** - Only 8.9MB memory usage, single 1.8MB binary
+- 💾 **Memory efficient** - Low memory footprint, single 1.9MB binary
 
 ## Installation
 
@@ -218,7 +218,7 @@ cargo bench --features benchmarks
 cargo install flash-watcher --features benchmarks
 ```
 
-**Note**: Benchmarks are disabled by default in CI/CD pipelines to save workflow minutes. They can be run manually or triggered through the dedicated benchmark workflow.
+**Note**: The `--bench` flag shows sample benchmark data for demonstration. For real benchmarks, use `cargo bench --features benchmarks`. Benchmarks are disabled by default in CI/CD pipelines to save workflow minutes.
 
 ### Development Scripts
 

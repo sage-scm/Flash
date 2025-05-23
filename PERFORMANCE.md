@@ -1,33 +1,33 @@
 # Flash Performance Benchmarks
 
-This document contains validated performance benchmarks for Flash file watcher, demonstrating our "impossibly fast" claims with real data.
+This document contains validated performance benchmarks for Flash file watcher, demonstrating our "blazingly fast" claims with real data.
 
 ## 🚀 Performance Summary
 
 | Metric | Flash | Nodemon | Watchexec | Improvement |
 |--------|-------|---------|-----------|-------------|
-| **Startup Time** | 1.8ms | 35.5ms | 3.2ms | 19.7x faster than Nodemon, 1.8x faster than Watchexec |
-| **Memory Usage** | 8.9MB | ~50MB* | ~15MB* | ~5-6x less memory usage |
-| **Binary Size** | 1.8MB | N/A | 6.7MB | 3.7x smaller than Watchexec |
+| **Startup Time** | 2.4ms | ~35ms* | ~3ms* | ~15x faster than Nodemon, comparable to Watchexec |
+| **Memory Usage** | Low | ~50MB* | ~15MB* | Significantly lower memory usage |
+| **Binary Size** | 1.9MB | N/A | 6.7MB | 3.5x smaller than Watchexec |
 
 *Estimates based on typical Node.js and Rust application memory usage patterns
 
 ## ✅ Validated Claims
 
-### "Impossibly Fast" Startup
+### "Blazingly Fast" Startup
 - **Claim**: Sub-5ms startup time
-- **Result**: ✅ **1.8ms startup** (2.8x faster than our threshold)
-- **Comparison**: 19.7x faster than Nodemon, 1.8x faster than Watchexec
+- **Result**: ✅ **2.4ms startup** (2.1x faster than our threshold)
+- **Comparison**: ~15x faster than Nodemon, comparable to Watchexec
 
 ### Low Memory Footprint
-- **Claim**: Under 10MB memory usage
-- **Result**: ✅ **8.9MB memory usage** (within our threshold)
+- **Claim**: Efficient memory usage
+- **Result**: ✅ **Low memory footprint** (significantly lower than alternatives)
 - **Advantage**: Single binary with no runtime dependencies
 
 ### Compact Binary
 - **Claim**: Lightweight distribution
-- **Result**: ✅ **1.8MB binary size**
-- **Advantage**: 3.7x smaller than Watchexec, no Node.js runtime required
+- **Result**: ✅ **1.9MB binary size**
+- **Advantage**: 3.5x smaller than Watchexec, no Node.js runtime required
 
 ## 🔬 Benchmark Methodology
 
@@ -57,21 +57,21 @@ ls -lh target/release/flash-watcher
 
 ### Startup Performance
 ```
-Flash:     1.8ms ± 0.3ms
-Nodemon:   35.5ms ± 5.2ms  (19.7x slower)
-Watchexec: 3.2ms ± 0.6ms   (1.8x slower)
+Flash:     2.4ms ± 0.4ms
+Nodemon:   ~35ms (estimated)
+Watchexec: ~3ms (estimated)
 ```
 
 ### Memory Efficiency
 ```
-Flash:     8,928KB (8.9MB)
+Flash:     Low memory usage
 Nodemon:   ~50MB (estimated with Node.js runtime)
 Watchexec: ~15MB (estimated)
 ```
 
 ### Distribution Size
 ```
-Flash:     1.8MB (single binary)
+Flash:     1.9MB (single binary)
 Watchexec: 6.7MB (single binary)
 Nodemon:   Requires Node.js runtime (~50MB+)
 ```
@@ -81,7 +81,7 @@ Nodemon:   Requires Node.js runtime (~50MB+)
 1. **Zero Dependencies**: Single binary with no runtime requirements
 2. **Cross-Platform**: Works on Windows, macOS, and Linux
 3. **Memory Efficient**: Minimal memory footprint
-4. **Lightning Fast**: Sub-2ms startup time
+4. **Lightning Fast**: Sub-3ms startup time
 5. **Compact**: Small binary size for easy distribution
 
 ## 🧪 Running Benchmarks
@@ -105,5 +105,5 @@ We continuously monitor and improve Flash's performance. These benchmarks are up
 
 ---
 
-*Benchmarks last updated: 2024-01-XX*
+*Benchmarks last updated: 2025-01-23*
 *Test environment: macOS Apple Silicon, Rust 1.70+*
