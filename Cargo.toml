@@ -1,6 +1,6 @@
 [package]
 name = "flash-watcher"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Brayden Moon <crazywolf132@gmail.com>"]
 description = "A blazingly fast file watcher that executes commands when files change"
