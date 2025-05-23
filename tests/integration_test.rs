@@ -51,14 +51,15 @@ mod tests {
         if !flash_binary.exists() {
             // If binary doesn't exist, just verify the build succeeded
             // This can happen in some CI environments
-            println!("Binary not found at {:?}, but build succeeded", flash_binary);
+            println!(
+                "Binary not found at {:?}, but build succeeded",
+                flash_binary
+            );
             return;
         }
 
         // Try to run the binary with --help to verify it works
-        let output = Command::new(&flash_binary)
-            .args(["--help"])
-            .output();
+        let output = Command::new(&flash_binary).args(["--help"]).output();
 
         match output {
             Ok(output) => {
