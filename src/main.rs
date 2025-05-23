@@ -7,11 +7,11 @@ use std::time::Duration;
 use anyhow::{Context, Result};
 use clap::Parser;
 use colored::Colorize;
-use notify::{RecursiveMode, Watcher};
 use flash_watcher::{
-    compile_patterns, load_config, merge_config, run_benchmarks, should_process_path,
-    Args, CommandRunner,
+    compile_patterns, load_config, merge_config, run_benchmarks, should_process_path, Args,
+    CommandRunner,
 };
+use notify::{RecursiveMode, Watcher};
 
 mod stats;
 use stats::StatsCollector;
@@ -276,9 +276,12 @@ fn setup_watcher(
             if watched_paths.insert(current_dir.to_path_buf()) {
                 watcher
                     .watch(current_dir, RecursiveMode::Recursive)
-                    .context(format!("Failed to watch current directory for pattern: {}", pattern_str))?;
+                    .context(format!(
+                        "Failed to watch current directory for pattern: {}",
+                        pattern_str
+                    ))?;
                 if !args.fast {
-                    println!("{} {} (pattern: {})", "Watching:".bright_blue(), ".", pattern_str);
+                    println!("{} . (pattern: {})", "Watching:".bright_blue(), pattern_str);
                 }
                 watch_count += 1;
             }

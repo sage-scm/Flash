@@ -113,6 +113,7 @@ mod tests {
             stats_interval: 5,
             bench: false,
             config: Some("flash.yaml".to_string()),
+            fast: false,
         };
 
         // Validate all fields are set correctly
