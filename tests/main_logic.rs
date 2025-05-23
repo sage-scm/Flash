@@ -173,10 +173,10 @@ stats_interval: 999
         assert_eq!(args.stats_interval, original_args.stats_interval);
 
         // Boolean values should also be preserved since they're non-default (true)
-        assert_eq!(args.initial, true); // CLI value preserved
-        assert_eq!(args.clear, true); // CLI value preserved
-        assert_eq!(args.restart, true); // CLI value preserved
-        assert_eq!(args.stats, true); // CLI value preserved
+        assert!(args.initial); // CLI value preserved
+        assert!(args.clear); // CLI value preserved
+        assert!(args.restart); // CLI value preserved
+        assert!(args.stats); // CLI value preserved
     }
 
     #[test]

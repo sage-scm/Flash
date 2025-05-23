@@ -33,6 +33,12 @@ pub struct BenchResults {
     results: HashMap<String, WatcherResult>,
 }
 
+impl Default for BenchResults {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BenchResults {
     #[allow(dead_code)]
     pub fn new() -> Self {

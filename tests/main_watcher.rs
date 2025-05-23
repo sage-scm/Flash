@@ -232,12 +232,11 @@ mod tests {
             let path = Path::new(path_str);
 
             // Test path existence check (used in main.rs setup_watcher)
-            let exists = path.exists();
-            let is_dir = path.is_dir();
+            let _exists = path.exists();
+            let _is_dir = path.is_dir();
 
-            // These checks should not panic
-            assert!(exists || !exists); // Always true, just testing no panic
-            assert!(is_dir || !is_dir); // Always true, just testing no panic
+            // These checks should not panic - just testing the calls work
+            // No assertions needed as we're just testing the methods don't panic
         }
     }
 

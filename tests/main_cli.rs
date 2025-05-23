@@ -81,8 +81,8 @@ mod tests {
     #[test]
     fn test_should_process_path_main_logic() {
         // Test the path processing logic used in main.rs event loop
-        let include_patterns = compile_patterns(&vec!["**/*.rs".to_string()]).unwrap();
-        let ignore_patterns = compile_patterns(&vec!["**/target/**".to_string()]).unwrap();
+        let include_patterns = compile_patterns(&["**/*.rs".to_string()]).unwrap();
+        let ignore_patterns = compile_patterns(&["**/target/**".to_string()]).unwrap();
 
         // Should process Rust files
         assert!(should_process_path(

@@ -50,8 +50,10 @@ mod tests {
         let args2 = Args::default();
         assert_eq!(args1, args2);
 
-        let mut args3 = Args::default();
-        args3.command = vec!["test".to_string()];
+        let args3 = Args {
+            command: vec!["test".to_string()],
+            ..Args::default()
+        };
         assert_ne!(args1, args3);
     }
 

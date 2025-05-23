@@ -244,8 +244,10 @@ initial: true
         write!(file, "{}", config_yaml).unwrap();
 
         // Simulate main.rs config loading logic
-        let mut args = Args::default();
-        args.config = Some(file.path().to_str().unwrap().to_string());
+        let mut args = Args {
+            config: Some(file.path().to_str().unwrap().to_string()),
+            ..Args::default()
+        };
 
         if let Some(config_path) = &args.config {
             let config = load_config(config_path).unwrap();

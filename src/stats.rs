@@ -14,6 +14,12 @@ pub struct StatsCollector {
     system: System,
 }
 
+impl Default for StatsCollector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StatsCollector {
     pub fn new() -> Self {
         Self {
