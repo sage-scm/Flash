@@ -86,5 +86,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - name: Check for crates.io token
+        id: token
+        env:
+          CRATES_TOKEN: ${{ secrets.CRATES_TOKEN }}
+        run: |
+          if [ -n "$CRATES_TOKEN" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::CRATES_TOKEN secret is not set; skipping crates.io publish"
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Publish
-        run: cargo publish --token ${{ secrets.CRATES_TOKEN }}
+        if: steps.token.outputs.present == 'true'
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_TOKEN }}
+        run: cargo publish

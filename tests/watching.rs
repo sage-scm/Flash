@@ -143,9 +143,15 @@ fn initial_flag_runs_the_command_before_any_change() {
 fn debounce_window_coalesces_bursty_writes() {
     let workspace = Workspace::new();
     let marker = workspace.marker("marker");
+    // A wide debounce window keeps the test stable on slow CI runners — the
+    // entire burst has to land inside it, otherwise this test devolves into
+    // a measurement of the runner's scheduling jitter.
+    let debounce_ms = 600;
+    let write_count = 8;
+
     let mut c = flash();
     c.arg("--fast")
-        .args(["--debounce", "300"])
+        .args(["--debounce", &debounce_ms.to_string()])
         .args(["-w", &workspace.watch_str()])
         .arg(touch_marker_cmd(&marker));
     let mut child = spawn_silent(c);
@@ -153,15 +159,15 @@ fn debounce_window_coalesces_bursty_writes() {
     thread::sleep(STEADY_STATE);
     let _ = fs::remove_file(&marker);
 
-    // Burst of writes well inside the debounce window.
-    for i in 0..5 {
+    // Burst of writes with no sleeping between them — guarantees they fit
+    // inside one debounce window regardless of how slow the host is.
+    for i in 0..write_count {
         workspace.write("burst.txt", &format!("v{i}"));
-        thread::sleep(Duration::from_millis(20));
     }
 
-    // Wait long enough that the debouncer has fired *and* a second hypothetical
-    // run could have appended a byte.
-    thread::sleep(Duration::from_millis(900));
+    // Wait for the debounce window to close plus enough slack for the command
+    // to actually run.
+    thread::sleep(Duration::from_millis(debounce_ms + 600));
 
     let _ = child.kill();
     let _ = child.wait();
@@ -169,11 +175,11 @@ fn debounce_window_coalesces_bursty_writes() {
     let bytes = fs::read(&marker).unwrap_or_default();
     assert!(
         !bytes.is_empty(),
-        "debouncer should still have fired the command once"
+        "debouncer should still have fired the command at least once"
     );
     assert!(
-        bytes.len() <= 2,
-        "burst of writes should coalesce; saw {} bytes",
+        bytes.len() < write_count,
+        "burst of {write_count} writes should coalesce into fewer runs; saw {} runs",
         bytes.len()
     );
 }

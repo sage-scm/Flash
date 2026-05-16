@@ -2,7 +2,7 @@
 name = "flash-watcher"
 version = "0.2.0"
 edition = "2021"
-rust-version = "1.74"
+rust-version = "1.95"
 authors = ["Brayden Moon <crazywolf132@gmail.com>"]
 description = "A fast, predictable file watcher that runs commands when files change."
 license = "MIT"

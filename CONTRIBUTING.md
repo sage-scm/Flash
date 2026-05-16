@@ -13,8 +13,8 @@ cargo build
 cargo test
 ```
 
-Flash targets the latest stable Rust toolchain. The MSRV is recorded in
-`Cargo.toml` (`rust-version`).
+Flash targets the latest stable Rust toolchain (1.95 at the time of writing).
+The MSRV is recorded in `Cargo.toml` (`rust-version`).
 
 ## Before you push
 

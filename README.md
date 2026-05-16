@@ -53,6 +53,7 @@ flash-watcher [OPTIONS] -- <COMMAND>...
   -f, --config <FILE>         Load defaults from a YAML configuration file
       --fast                  Quieter output, leaner startup path
       --stats                 Periodically print live counters
+      --stats-interval <S>    How often to refresh statistics [default: 10]
       --bench                 Benchmark Flash against installed watchers, then exit
   -h, --help                  Print help
   -V, --version               Print version
@@ -125,24 +126,24 @@ metric, and reports the median for binary launch time, end-to-end change
 detection latency, and resident memory at steady state. Every measurement is
 real and reproducible — there are no canned numbers anywhere in the binary.
 
-Representative output (Apple Silicon, macOS, with all three watchers using
-their direct-exec paths):
+Representative output (Apple Silicon, macOS, medians across five runs with
+all three watchers using their direct-exec paths):
 
 ```text
 Binary launch (smaller is better)
-  flash-watcher     5.22 ms
-  cargo-watch       5.23 ms
-  watchexec         5.28 ms
+  flash-watcher     5.21 ms
+  cargo-watch       5.25 ms
+  watchexec         5.26 ms
 
 Change-detection latency (smaller is better)
-  flash-watcher    22.49 ms
-  watchexec        30.73 ms
-  cargo-watch     513.45 ms
+  flash-watcher    30.84 ms
+  watchexec        33.88 ms
+  cargo-watch     527.51 ms
 
 Resident memory (smaller is better)
   flash-watcher    7.11 MiB
-  cargo-watch     10.95 MiB
-  watchexec       13.97 MiB
+  cargo-watch     10.94 MiB
+  watchexec       14.03 MiB
 ```
 
 See [PERFORMANCE.md](PERFORMANCE.md) for a deeper write-up of the methodology.

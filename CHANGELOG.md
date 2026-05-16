@@ -25,9 +25,9 @@ versions follow [SemVer](https://semver.org/).
   on editor write bursts.
 - **Bench is apples-to-apples.** The probe command is now `touch <marker>`
   delivered as discrete args, so both Flash and watchexec measure their
-  direct-exec path. On an Apple Silicon Mac that puts Flash at ~22 ms
-  detection latency vs. ~30 ms for watchexec, with the rest of the table
-  unchanged.
+  direct-exec path. On an Apple Silicon Mac, medians across five runs put
+  Flash at ~31 ms detection latency vs. ~34 ms for watchexec, with launch
+  time and memory unchanged from the table above.
 
 ### Changed
 - Replaced the hand-rolled per-path debounce with `notify-debouncer-mini`,

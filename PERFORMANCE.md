@@ -35,20 +35,22 @@ Currently supported on the comparison side: `watchexec`, `nodemon`,
 
 Captured 2026-05 on an Apple Silicon Mac running macOS. Both Flash and
 watchexec are measured with their direct-exec paths; cargo-watch always wraps
-the command in a shell.
+the command in a shell. Each value is the median across five back-to-back
+runs of `--bench`.
 
 | Metric                     | flash-watcher | watchexec | cargo-watch |
 | -------------------------- | ------------: | --------: | ----------: |
-| Binary launch (median, ms) |          5.22 |      5.28 |        5.23 |
-| Detection latency (ms)     |         22.49 |     30.73 |      513.45 |
+| Binary launch (median, ms) |          5.21 |      5.26 |        5.25 |
+| Detection latency (ms)     |         30.84 |     33.88 |      527.51 |
 | Resident memory (steady)   |       7.1 MiB |  14.0 MiB |    10.9 MiB |
 
 Some observations:
 
-- **Detection latency is where day-to-day feedback lives**, and Flash now
-  shaves ~8 ms off watchexec by skipping the shell for plain commands. That
-  margin holds across runs on this hardware.
-- **Binary launch is effectively a three-way tie.** All three are within
+- **Detection latency** is where day-to-day feedback lives, and Flash lands
+  about 3 ms faster than watchexec by skipping the shell for plain commands.
+  It's not a knockout — they share the same `notify`-based plumbing — but the
+  margin is consistent across runs.
+- **Binary launch** is effectively a three-way tie. All three are within
   scheduler noise of each other; if startup speed is what you care about, any
   of them is a good answer.
 - **Memory footprint** is the cleanest win. Flash sits at ~7 MiB resident

@@ -25,8 +25,8 @@ If applicable, paste the error output here.
 
 **Environment (please complete the following information):**
  - OS: [e.g. macOS, Windows, Linux]
- - Flash version: [e.g. 0.1.0]
- - Rust version: [e.g. 1.70.0]
+ - Flash version: [e.g. 0.2.0]
+ - Rust version: [e.g. 1.74.0]
 
 **Configuration**
 If using a config file, please paste it here:
