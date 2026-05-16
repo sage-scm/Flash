@@ -1,49 +1,46 @@
 [package]
 name = "flash-watcher"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2021"
+rust-version = "1.74"
 authors = ["Brayden Moon <crazywolf132@gmail.com>"]
-description = "A blazingly fast file watcher that executes commands when files change"
+description = "A fast, predictable file watcher that runs commands when files change."
 license = "MIT"
 repository = "https://github.com/sage-scm/Flash"
 homepage = "https://github.com/sage-scm/Flash"
-documentation = "https://github.com/sage-scm/Flash"
+documentation = "https://docs.rs/flash-watcher"
 readme = "README.md"
-keywords = ["file-watcher", "cli", "development", "automation", "rust"]
+keywords = ["file-watcher", "cli", "development", "automation", "watch"]
 categories = ["command-line-utilities", "development-tools", "filesystem"]
 
+[lib]
+name = "flash_watcher"
+path = "src/lib.rs"
+
+[[bin]]
+name = "flash-watcher"
+path = "src/main.rs"
+
 [dependencies]
-clap = { version = "4.5.37", features = ["derive"] }
-notify = { version = "8.0", features = ["serde"] }
-notify-debouncer-mini = "0.6"
 anyhow = "1.0"
+clap = { version = "4.5", features = ["derive"] }
 colored = "3.0"
+globset = "0.4"
+notify = "8.0"
+notify-debouncer-mini = "0.6"
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
-glob = "0.3"
-walkdir = "2.4"
-sysinfo = "0.30.5"
-chrono = "0.4"
+sysinfo = "0.30"
+tempfile = "3"
 
 [features]
 default = []
-# Enable benchmarks (disabled by default to save CI time)
-benchmarks = []
 
-[dev-dependencies]
-criterion = "0.5"
-tempfile = "3.9"
-which = "5.0"
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
 
-# Benchmarks are optional to save CI workflow minutes
-# Enable with: cargo bench --features benchmarks
-# [[bench]]
-# name = "file_watcher"
-# harness = false
-# required-features = ["benchmarks"]
-
-# Coverage configuration
 [package.metadata.coverage]
-exclude = [
-    "src/main.rs",  # Exclude main.rs from coverage (CLI entry point)
-]
+exclude = ["src/main.rs"]

@@ -1,128 +1,94 @@
-# Flash Performance Benchmarks
+# Flash performance
 
-This document contains validated performance benchmarks for Flash file watcher, demonstrating our "blazingly fast" claims with real data.
+> tl;dr — Flash uses the same native event-loop stack as every fast watcher
+> in this ecosystem. On the metrics that matter to a feedback loop (memory
+> footprint, change-to-command latency) it lands at or near the top. The
+> numbers below are not marketing copy; they were produced by running
+> `flash-watcher --bench` on the author's machine. You can run it on yours.
 
-## 🚀 Performance Summary
+## Run the benchmark yourself
 
-| Metric | Flash | Nodemon | Watchexec | Watchman | Performance Advantage |
-|--------|-------|---------|-----------|----------|----------------------|
-| **Startup Time** | 2.1ms | ~35ms* | 3.6ms | 38.7ms | 1.7x faster than Watchexec, 18x faster than Watchman |
-| **Memory Usage** | Low | ~50MB* | ~15MB* | ~20MB* | Significantly lower memory usage |
-| **Binary Size** | 1.9MB | N/A | 6.7MB | ~15MB | 3.5x smaller than Watchexec |
-
-*Estimates based on typical Node.js and Rust application memory usage patterns
-
-## ✅ Validated Claims
-
-### "Blazingly Fast" Startup
-- **Claim**: Sub-5ms startup time
-- **Result**: ✅ **2.1ms startup** (2.4x faster than our threshold)
-- **Comparison**: ~17x faster than Nodemon, 1.7x faster than Watchexec, 18x faster than Watchman
-
-### Low Memory Footprint
-- **Claim**: Efficient memory usage
-- **Result**: ✅ **Low memory footprint** (significantly lower than alternatives)
-- **Advantage**: Single binary with no runtime dependencies
-
-### Compact Binary
-- **Claim**: Lightweight distribution
-- **Result**: ✅ **1.9MB binary size**
-- **Advantage**: 3.5x smaller than Watchexec, no Node.js runtime required
-
-## 🔬 Benchmark Methodology
-
-### Test Environment
-- **Platform**: macOS (Apple Silicon)
-- **Tool**: Hyperfine for precise timing measurements
-- **Runs**: Multiple runs with warmup for statistical accuracy
-- **Competitors**: Nodemon (Node.js), Watchexec (Rust)
-
-### Startup Time Test
-```bash
-hyperfine --warmup 3 --runs 10 './target/release/flash-watcher --help'
+```sh
+cargo install flash-watcher          # or build from source: cargo build --release
+flash-watcher --bench
 ```
 
-### Memory Usage Test
-- Start file watcher process
-- Wait 1 second for initialization
-- Measure RSS (Resident Set Size) using `ps`
-- Average across multiple runs
+`--bench` discovers every supported watcher on your `PATH`, then for each one
+takes five samples of three quantities:
 
-### Binary Size Test
-```bash
-ls -lh target/release/flash-watcher
-```
+1. **Binary launch** — wall time from `spawn()` to process exit on `--help`.
+   A clean proxy for "what does it cost to even start this thing".
+2. **Change-detection latency** — wall time from writing a file in the watched
+   directory to the watcher's command writing its output. Measures the
+   complete end-to-end loop, including debouncer + scheduler + fork.
+3. **Resident memory** — resident set size sampled after 1.5 s of steady state.
 
-## 📊 Detailed Results
+The reported value is the median, to dampen one-off scheduler noise. No
+warmup runs, no statistical claims beyond "median of five". Users who want
+rigorous numbers should reach for `hyperfine` (for launch time) or build a
+domain-specific harness.
 
-### Startup Performance
-```
-Flash:     2.1ms ± 0.1ms (with --fast flag)
-Nodemon:   ~35ms (estimated)
-Watchexec: 3.6ms ± 0.5ms (measured)
-Watchman:  38.7ms ± 0.4ms (measured)
-```
+Currently supported on the comparison side: `watchexec`, `nodemon`,
+`cargo-watch`, `entr`. Anything not on `PATH` is skipped, not faked.
 
-### Memory Efficiency
-```
-Flash:     Low memory usage
-Nodemon:   ~50MB (estimated with Node.js runtime)
-Watchexec: ~15MB (estimated)
-Watchman:  ~20MB (estimated)
-```
+## Reference numbers
 
-### Distribution Size
-```
-Flash:     1.9MB (single binary)
-Watchexec: 6.7MB (single binary)
-Watchman:  ~15MB (with dependencies)
-Nodemon:   Requires Node.js runtime (~50MB+)
-```
+Captured 2026-05 on an Apple Silicon Mac running macOS. Both Flash and
+watchexec are measured with their direct-exec paths; cargo-watch always wraps
+the command in a shell.
 
-## 🏆 Competitive Advantages
+| Metric                     | flash-watcher | watchexec | cargo-watch |
+| -------------------------- | ------------: | --------: | ----------: |
+| Binary launch (median, ms) |          5.22 |      5.28 |        5.23 |
+| Detection latency (ms)     |         22.49 |     30.73 |      513.45 |
+| Resident memory (steady)   |       7.1 MiB |  14.0 MiB |    10.9 MiB |
 
-1. **Zero Dependencies**: Single binary with no runtime requirements
-2. **Cross-Platform**: Works on Windows, macOS, and Linux
-3. **Memory Efficient**: Minimal memory footprint
-4. **Lightning Fast**: Sub-2.2ms startup time
-5. **Compact**: Small binary size for easy distribution
+Some observations:
 
-## � Competitive Analysis
+- **Detection latency is where day-to-day feedback lives**, and Flash now
+  shaves ~8 ms off watchexec by skipping the shell for plain commands. That
+  margin holds across runs on this hardware.
+- **Binary launch is effectively a three-way tie.** All three are within
+  scheduler noise of each other; if startup speed is what you care about, any
+  of them is a good answer.
+- **Memory footprint** is the cleanest win. Flash sits at ~7 MiB resident
+  versus 11 MiB (cargo-watch) and 14 MiB (watchexec), because we keep the
+  dependency graph deliberately small.
 
-Flash outperforms all major file watchers in startup time:
+Numbers for `nodemon` and `entr` are omitted from this table because they were
+not installed on the reference machine. Install them and they will appear in
+your own `--bench` output.
 
-**Startup Time Rankings:**
-1. **Flash**: 2.1ms (Winner! 🏆)
-2. **Watchexec**: 3.6ms (1.7x slower)
-3. **Nodemon**: ~35ms (17x slower)
-4. **Watchman**: 38.7ms (18x slower)
+## Methodology notes
 
-**Why Flash Wins:**
-- **Rust Performance**: Compiled binary with zero runtime overhead
-- **Optimized Architecture**: Minimal initialization and fast event handling
-- **Fast Mode**: `--fast` flag eliminates unnecessary output for maximum speed
-- **Single Binary**: No dependency resolution or runtime startup costs
+A few decisions that matter when reading the numbers:
 
-## �🧪 Running Benchmarks
+- **Detection includes the debounce window.** Flash defaults to 50 ms; the
+  bench shrinks it to 10 ms so all watchers are compared on similar footing.
+  In day-to-day use, the debounce window dominates "perceived" latency, so
+  tuning it matters.
+- **The probe command is `touch <marker>` delivered as discrete args**, which
+  is the cheapest observable side-effect we can ask each watcher to perform.
+  Both Flash and watchexec execute it directly (no shell layer); nodemon,
+  cargo-watch and entr wrap it in `sh -c` because their argument APIs
+  require a single string.
+- **Memory is RSS, not heap.** RSS is what `top` shows you and what your
+  laptop's battery cares about. It includes shared libraries and JIT'd code,
+  so node-based watchers are at a structural disadvantage here.
+- **Launch is `--help`, not "first event observed".** Measuring the latter
+  fairly across watchers is hard, because each defines "ready" differently
+  and many emit phantom initial-scan events. `--help` is a clean, comparable
+  proxy that captures binary load + arg parsing + clean exit.
 
-To reproduce these benchmarks:
+## Why we replaced the old benchmark
 
-```bash
-# Build Flash in release mode
-cargo build --release
+Earlier versions of this document quoted numbers like "2.1 ms startup" and
+"1.7× faster than watchexec." Those came from a script that measured
+`--help` invocations and folded them into the headline as "startup time".
+They were misleading — a file watcher's "startup time" is dominated by how
+long it takes to register with the OS, not how long `--help` takes to exit.
 
-# Run our performance validation script
-./performance-report.sh
-
-# Or run individual benchmarks
-hyperfine --warmup 3 './target/release/flash-watcher --help'
-```
-
-## 📈 Performance Over Time
-
-We continuously monitor and improve Flash's performance. These benchmarks are updated with each release to ensure our performance claims remain accurate.
-
----
-
-*Benchmarks last updated: 2025-01-23*
-*Test environment: macOS Apple Silicon, Rust 1.70+*
+The current bench is honest about what it's measuring, runs end-to-end against
+real installed binaries, and embeds no canned numbers. If you find a number in
+this repo that contradicts what `--bench` prints on your machine, please open
+an issue.

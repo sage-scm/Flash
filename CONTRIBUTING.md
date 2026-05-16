@@ -1,102 +1,70 @@
-# Contributing to Flash ⚡
+# Contributing to Flash
 
-Thank you for your interest in contributing to Flash! We welcome contributions from everyone.
+Thanks for taking the time to look at the project. Whether you're filing a bug,
+suggesting a feature, or sending a pull request, contributions are welcome and
+appreciated.
 
-## Getting Started
+## Getting started
 
-1. **Fork the repository** on GitHub
-2. **Clone your fork** locally:
-   ```bash
-   git clone https://github.com/your-username/flash.git
-   cd flash
-   ```
-3. **Create a new branch** for your feature or bugfix:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-## Development Setup
-
-### Prerequisites
-
-- Rust 1.70 or later
-- Git
-
-### Building
-
-```bash
+```sh
+git clone https://github.com/sage-scm/Flash.git
+cd Flash
 cargo build
-```
-
-### Running Tests
-
-```bash
 cargo test
 ```
 
-### Running Benchmarks
+Flash targets the latest stable Rust toolchain. The MSRV is recorded in
+`Cargo.toml` (`rust-version`).
 
-```bash
-cargo bench
+## Before you push
+
+Run the same checks CI does:
+
+```sh
+cargo fmt --all
+cargo clippy --all-targets -- -D warnings
+cargo test
 ```
 
-## Making Changes
+The integration tests under `tests/` drive the compiled binary against a real
+filesystem, so they're the best line of defense against issues like #1
+(silently watching the wrong directory). If you change behaviour, please add
+or adjust a test that fails without your change.
 
-1. **Write tests** for your changes when applicable
-2. **Ensure all tests pass**: `cargo test`
-3. **Check formatting**: `cargo fmt`
-4. **Run clippy**: `cargo clippy`
-5. **Update documentation** if needed
+If you touched anything performance-relevant, run the bench to sanity-check:
 
-## Submitting Changes
+```sh
+cargo run --release -- --bench
+```
 
-1. **Commit your changes** with a clear commit message:
-   ```bash
-   git commit -m "Add feature: description of your changes"
-   ```
-2. **Push to your fork**:
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-3. **Create a Pull Request** on GitHub
+It compares Flash against any other watchers (watchexec, nodemon,
+cargo-watch, entr) installed on your `PATH` and prints honest, reproducible
+numbers. Please don't commit hard-coded performance values to the repo.
 
-## Pull Request Guidelines
+## Filing issues
 
-- **Describe your changes** clearly in the PR description
-- **Reference any related issues** using `#issue-number`
-- **Keep PRs focused** - one feature or fix per PR
-- **Update tests** and documentation as needed
-- **Ensure CI passes** before requesting review
+When you report a bug, the most helpful thing you can include is the exact
+command you ran and the output you saw. If it's a watching bug, telling us
+your OS and which filesystem the affected files live on (APFS, ext4, NTFS,
+network mount, …) usually saves a round-trip.
 
-## Code Style
+## Pull requests
 
-- Follow standard Rust formatting (`cargo fmt`)
-- Use meaningful variable and function names
-- Add comments for complex logic
-- Keep functions focused and small
+Small, focused PRs are the easiest to land:
 
-## Reporting Issues
+- One topic per PR.
+- A short description of what the change accomplishes and *why*.
+- Tests for new behaviour or regression coverage for fixes.
+- A `CHANGELOG.md` entry under the unreleased section.
 
-When reporting issues, please include:
+## Code style
 
-- **Operating system** and version
-- **Rust version** (`rustc --version`)
-- **Flash version** or commit hash
-- **Steps to reproduce** the issue
-- **Expected vs actual behavior**
-- **Error messages** or logs if applicable
+Idiomatic, formatted Rust with `cargo fmt`. Avoid comments that restate what
+the code already says — prefer naming things well. Favour `Result` over panics
+in library code; the binary entry point in `src/main.rs` is the one place
+errors turn into exit codes.
 
-## Feature Requests
+## License
 
-We welcome feature requests! Please:
-
-- **Check existing issues** to avoid duplicates
-- **Describe the use case** clearly
-- **Explain why** the feature would be valuable
-- **Consider implementation** if you're willing to contribute
-
-## Questions?
-
-Feel free to open an issue for questions or join discussions in existing issues.
-
-Thank you for contributing! 🚀
+By contributing, you agree your changes are licensed under the project's MIT
+license.

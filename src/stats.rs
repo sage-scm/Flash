@@ -1,156 +1,149 @@
 use std::time::{Duration, Instant};
 
-use chrono::Local;
 use colored::Colorize;
 use sysinfo::{Pid, System};
 
-/// Stats collector for Flash performance metrics
-pub struct StatsCollector {
-    pub start_time: Instant,
-    pub file_changes: usize,
-    pub watcher_calls: usize,
-    pub last_memory_usage: u64,
-    pub last_cpu_usage: f32,
+/// Lightweight rolling counters and resource samples for the `--stats` flag.
+pub struct Stats {
+    started_at: Instant,
+    changes: u64,
+    events: u64,
+    memory_bytes: u64,
+    cpu_percent: f32,
     system: System,
+    pid: Pid,
 }
 
-impl Default for StatsCollector {
+impl Default for Stats {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl StatsCollector {
+impl Stats {
     pub fn new() -> Self {
         Self {
-            start_time: Instant::now(),
-            file_changes: 0,
-            watcher_calls: 0,
-            last_memory_usage: 0,
-            last_cpu_usage: 0.0,
-            system: System::new_all(),
+            started_at: Instant::now(),
+            changes: 0,
+            events: 0,
+            memory_bytes: 0,
+            cpu_percent: 0.0,
+            system: System::new(),
+            pid: Pid::from_u32(std::process::id()),
         }
     }
 
-    pub fn record_file_change(&mut self) {
-        self.file_changes += 1;
+    pub fn record_change(&mut self) {
+        self.changes += 1;
     }
 
-    pub fn record_watcher_call(&mut self) {
-        self.watcher_calls += 1;
+    pub fn record_event(&mut self) {
+        self.events += 1;
     }
 
-    pub fn update_resource_usage(&mut self) {
-        self.system.refresh_all();
-
-        let pid = std::process::id();
-        if let Some(process) = self.system.process(Pid::from_u32(pid)) {
-            self.last_memory_usage = process.memory() / 1024; // KB
-            self.last_cpu_usage = process.cpu_usage();
+    pub fn refresh(&mut self) {
+        self.system.refresh_process(self.pid);
+        if let Some(proc) = self.system.process(self.pid) {
+            self.memory_bytes = proc.memory();
+            self.cpu_percent = proc.cpu_usage();
         }
     }
 
-    pub fn display_stats(&self) {
-        let elapsed = self.start_time.elapsed();
-        let timestamp = Local::now().format("%H:%M:%S").to_string();
+    pub fn uptime(&self) -> Duration {
+        self.started_at.elapsed()
+    }
 
-        println!("{}", "── Flash Performance Stats ──".bright_green());
-        println!("{} {}", "Time:".bright_blue(), timestamp);
-        println!("{} {}", "Uptime:".bright_blue(), format_duration(elapsed));
-        println!("{} {}", "File changes:".bright_blue(), self.file_changes);
-        println!("{} {}", "Watcher calls:".bright_blue(), self.watcher_calls);
-        println!(
-            "{} {} KB",
-            "Memory usage:".bright_blue(),
-            self.last_memory_usage
-        );
-        println!("{} {:.1}%", "CPU usage:".bright_blue(), self.last_cpu_usage);
-        println!("{}", "────────────────────────────".bright_green());
+    pub fn changes(&self) -> u64 {
+        self.changes
+    }
+
+    pub fn events(&self) -> u64 {
+        self.events
+    }
+
+    pub fn memory_bytes(&self) -> u64 {
+        self.memory_bytes
+    }
+
+    pub fn cpu_percent(&self) -> f32 {
+        self.cpu_percent
+    }
+
+    pub fn render(&self) -> String {
+        format!(
+            "{header}\n  uptime    {uptime}\n  changes   {changes}\n  events    {events}\n  memory    {memory}\n  cpu       {cpu:.1} %",
+            header = "── flash · live stats ──".bright_cyan(),
+            uptime = format_duration(self.started_at.elapsed()),
+            changes = self.changes,
+            events = self.events,
+            memory = format_bytes(self.memory_bytes),
+            cpu = self.cpu_percent,
+        )
     }
 }
 
-pub fn format_duration(duration: Duration) -> String {
-    let seconds = duration.as_secs();
-    if seconds < 60 {
-        format!("{}s", seconds)
-    } else if seconds < 3600 {
-        format!("{}m {}s", seconds / 60, seconds % 60)
+pub fn format_duration(d: Duration) -> String {
+    let secs = d.as_secs();
+    let (h, m, s) = (secs / 3600, (secs / 60) % 60, secs % 60);
+    if h > 0 {
+        format!("{h}h {m:02}m {s:02}s")
+    } else if m > 0 {
+        format!("{m}m {s:02}s")
     } else {
-        format!(
-            "{}h {}m {}s",
-            seconds / 3600,
-            (seconds % 3600) / 60,
-            seconds % 60
-        )
+        format!("{s}s")
+    }
+}
+
+pub fn format_bytes(bytes: u64) -> String {
+    const KIB: f64 = 1024.0;
+    const MIB: f64 = KIB * 1024.0;
+    const GIB: f64 = MIB * 1024.0;
+    let b = bytes as f64;
+    if b >= GIB {
+        format!("{:.2} GiB", b / GIB)
+    } else if b >= MIB {
+        format!("{:.2} MiB", b / MIB)
+    } else if b >= KIB {
+        format!("{:.1} KiB", b / KIB)
+    } else {
+        format!("{bytes} B")
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::Duration;
 
     #[test]
-    fn test_stats_collector_new() {
-        let stats = StatsCollector::new();
-        assert_eq!(stats.file_changes, 0);
-        assert_eq!(stats.watcher_calls, 0);
-        assert_eq!(stats.last_memory_usage, 0);
-        assert_eq!(stats.last_cpu_usage, 0.0);
+    fn counters_increment() {
+        let mut s = Stats::new();
+        s.record_event();
+        s.record_event();
+        s.record_change();
+        assert_eq!(s.events(), 2);
+        assert_eq!(s.changes(), 1);
     }
 
     #[test]
-    fn test_record_file_change() {
-        let mut stats = StatsCollector::new();
-        assert_eq!(stats.file_changes, 0);
-
-        stats.record_file_change();
-        assert_eq!(stats.file_changes, 1);
-
-        stats.record_file_change();
-        assert_eq!(stats.file_changes, 2);
-    }
-
-    #[test]
-    fn test_record_watcher_call() {
-        let mut stats = StatsCollector::new();
-        assert_eq!(stats.watcher_calls, 0);
-
-        stats.record_watcher_call();
-        assert_eq!(stats.watcher_calls, 1);
-
-        stats.record_watcher_call();
-        assert_eq!(stats.watcher_calls, 2);
-    }
-
-    #[test]
-    fn test_format_duration_seconds() {
+    fn format_duration_buckets() {
         assert_eq!(format_duration(Duration::from_secs(0)), "0s");
-        assert_eq!(format_duration(Duration::from_secs(30)), "30s");
-        assert_eq!(format_duration(Duration::from_secs(59)), "59s");
+        assert_eq!(format_duration(Duration::from_secs(45)), "45s");
+        assert_eq!(format_duration(Duration::from_secs(125)), "2m 05s");
+        assert_eq!(format_duration(Duration::from_secs(3725)), "1h 02m 05s");
     }
 
     #[test]
-    fn test_format_duration_minutes() {
-        assert_eq!(format_duration(Duration::from_secs(60)), "1m 0s");
-        assert_eq!(format_duration(Duration::from_secs(90)), "1m 30s");
-        assert_eq!(format_duration(Duration::from_secs(3599)), "59m 59s");
+    fn format_bytes_buckets() {
+        assert_eq!(format_bytes(512), "512 B");
+        assert_eq!(format_bytes(2048), "2.0 KiB");
+        assert_eq!(format_bytes(5 * 1024 * 1024), "5.00 MiB");
     }
 
     #[test]
-    fn test_format_duration_hours() {
-        assert_eq!(format_duration(Duration::from_secs(3600)), "1h 0m 0s");
-        assert_eq!(format_duration(Duration::from_secs(3661)), "1h 1m 1s");
-        assert_eq!(format_duration(Duration::from_secs(7323)), "2h 2m 3s");
-    }
-
-    #[test]
-    fn test_update_resource_usage() {
-        let mut stats = StatsCollector::new();
-        // This test just ensures the method doesn't panic
-        // Actual values depend on system state
-        stats.update_resource_usage();
-        // Memory usage should be updated (non-zero for a running process)
-        // Note: This might be 0 in some test environments, so we just check it doesn't panic
+    fn refresh_does_not_panic() {
+        let mut s = Stats::new();
+        s.refresh();
+        // Memory may be zero on some sandboxes; just ensure refresh is sound.
+        assert!(s.cpu_percent() >= 0.0);
     }
 }

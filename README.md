@@ -1,258 +1,162 @@
-# Flash ⚡
+# Flash
 
-[![CI](https://github.com/sage-scm/Flash/workflows/CI/badge.svg)](https://github.com/sage-scm/Flash/actions)
+[![CI](https://github.com/sage-scm/Flash/actions/workflows/ci.yml/badge.svg)](https://github.com/sage-scm/Flash/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/flash-watcher.svg)](https://crates.io/crates/flash-watcher)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A blazingly fast file watcher that executes commands when files change.
-
-**2.1ms startup time** • **1.7x faster than watchexec** • **18x faster than watchman**
-
-Think `nodemon`, but more general purpose and written in Rust.
-
-## Features
-
-- ⚡ **Blazingly fast** - 2.1ms startup time, 1.7x faster than watchexec, 18x faster than watchman ([benchmarks](PERFORMANCE.md))
-- 🎯 **Flexible filtering** - Support for glob patterns, file extensions, and ignore patterns
-- 🔧 **Configurable** - YAML configuration files for complex setups
-- 📊 **Performance monitoring** - Built-in statistics and benchmarking
-- 🔄 **Process management** - Restart long-running processes or spawn new ones
-- 🌍 **Cross-platform** - Works on Windows, macOS, and Linux
-- 🎨 **Beautiful output** - Colored terminal output with clear status messages
-- 💾 **Memory efficient** - Low memory footprint, single 1.9MB binary
-
-## Installation
-
-### From Crates.io (Recommended)
+A fast, predictable file watcher that runs commands when files change. Think
+`nodemon`, but a single static binary with no runtime to boot.
 
 ```sh
-cargo install flash-watcher
+flash-watcher -w src cargo test
 ```
 
-### From Source
+That's it. Save a file under `src`, your tests rerun.
+
+## Why Flash
+
+- **Tight, native event loop** — built on [`notify`] + [`notify-debouncer-mini`],
+  the same battle-tested stack used by watchexec and cargo-watch.
+- **Sensible defaults** — debounce coalesces editor write storms, glob filters
+  do the obvious thing, and `--restart` keeps long-running servers fresh.
+- **Honest about performance** — `flash-watcher --bench` measures Flash against
+  every other watcher installed on your machine and prints the numbers. We
+  don't ship hard-coded marketing values.
+- **Loud when it should be, quiet when it shouldn't** — clear errors when your
+  watch path is wrong, a quieter `--fast` mode for tight inner loops.
+
+## Install
 
 ```sh
+# from crates.io
+cargo install flash-watcher
+
+# from source
 git clone https://github.com/sage-scm/Flash.git
 cd Flash
 cargo install --path .
 ```
 
-### Pre-built Binaries
-
-Download pre-built binaries from the [releases page](https://github.com/sage-scm/Flash/releases).
-
 ## Usage
 
-```sh
-flash [OPTIONS] <COMMAND>...
+```text
+flash-watcher [OPTIONS] -- <COMMAND>...
+
+  -w, --watch <PATH>          Path or glob to watch (repeat to add more)
+  -e, --ext <LIST>            Comma-separated extensions to keep (e.g. "rs,toml")
+  -p, --pattern <GLOB>        Include only paths matching this glob
+  -i, --ignore <GLOB>         Drop paths matching this glob
+  -d, --debounce <MS>         Debounce window in milliseconds [default: 50]
+  -n, --initial               Run the command once on startup, before watching
+  -c, --clear                 Clear the terminal before each run
+  -r, --restart               Restart the previous process instead of spawning anew
+  -f, --config <FILE>         Load defaults from a YAML configuration file
+      --fast                  Quieter output, leaner startup path
+      --stats                 Periodically print live counters
+      --bench                 Benchmark Flash against installed watchers, then exit
+  -h, --help                  Print help
+  -V, --version               Print version
 ```
 
-### Arguments
-
-- `<COMMAND>...`: Command to run when files change
-
-### Options
-
-- `-w, --watch <WATCH>`: Paths/patterns to watch (supports glob patterns like `src/**/*.js`)
-- `-e, --ext <EXT>`: File extensions to watch (e.g., "js,jsx,ts,tsx")
-- `-p, --pattern <PATTERN>`: Specific glob patterns to include (e.g., "src/**/*.{js,ts}")
-- `-i, --ignore <IGNORE>`: Glob patterns to ignore (e.g., "**/node_modules/**")
-- `-d, --debounce <DEBOUNCE>`: Debounce time in milliseconds [default: 100]
-- `-r, --restart`: Restart long-running processes instead of spawning new ones
-- `-c, --clear`: Clear console before each command run
-- `-n, --initial`: Run command on startup
-- `-f, --config <CONFIG>`: Use configuration from file
-- `--stats`: Show performance statistics while running
-- `--stats-interval <SECONDS>`: Statistics update interval in seconds [default: 10]
-- `--bench`: Run benchmark against other file watchers
-- `--fast`: Fast startup mode - minimal output and optimizations
-- `-h, --help`: Print help
-- `-V, --version`: Print version
-
-## Glob Pattern Support
-
-Flash supports powerful glob pattern matching for both watching files and filtering them:
-
-### Watch Patterns (`-w`)
-
-Watch specific file patterns directly:
+### A few recipes
 
 ```sh
-# Watch all JavaScript files in src directory
-flash -w "src/**/*.js" echo "JS file changed"
+# Re-run tests when any Rust source changes
+flash-watcher -w src -e rs cargo test
 
-# Watch multiple specific patterns
-flash -w "src/**/*.js" -w "public/**/*.css" echo "File changed"
+# Restart a dev server on save, clearing the terminal each time
+flash-watcher -r -c -n npm run dev
+
+# Watch only TypeScript under src/, ignore generated files
+flash-watcher -p 'src/**/*.{ts,tsx}' -i '**/*.generated.ts' npm run build
+
+# Load everything from a config file
+flash-watcher -f flash.yaml
 ```
 
-### Ignore Patterns (`-i`)
+### Configuration file
 
-Ignore specific directories or files:
-
-```sh
-# Ignore node_modules and dist directories anywhere in the tree
-flash -w "." -i "**/node_modules/**" -i "**/dist/**" echo "File changed"
-
-# Ignore minified files
-flash -w "src" -i "**/*.min.js" echo "File changed"
-```
-
-### Include Patterns (`-p`)
-
-Specifically include only certain file patterns:
-
-```sh
-# Only include TypeScript files in src and test directories
-flash -w "." -p "src/**/*.ts" -p "test/**/*.ts" echo "TS file changed"
-```
-
-### Combining Options
-
-The most powerful usage comes from combining these options:
-
-```sh
-flash -w "." -e "js,ts" -p "src/**/*.{js,ts}" -i "**/node_modules/**" -i "**/dist/**" echo "File changed"
-```
-
-## Examples
-
-Watch current directory and restart a Node.js server when changes occur:
-```sh
-flash -r node server.js
-```
-
-Watch TypeScript files in the src directory and run the build script:
-```sh
-flash -w src -e ts npm run build
-```
-
-Watch multiple directories but ignore node_modules:
-```sh
-flash -w src -w tests -i "**/node_modules/**" cargo test
-```
-
-Watch using glob patterns to include only specific files:
-```sh
-flash -p "src/**/*.{js,jsx,ts,tsx}" -p "public/**/*.css" npm run build
-```
-
-Clear console and run command on startup:
-```sh
-flash -c -n -r npm start
-```
-
-Run with performance statistics:
-```sh
-flash --stats --stats-interval 5 npm run dev
-```
-
-Ultra-fast startup mode (minimal output):
-```sh
-flash --fast npm run dev
-```
-
-## Configuration File
-
-You can define a configuration file in YAML format to avoid typing long commands:
+Every flag has a YAML counterpart:
 
 ```yaml
 # flash.yaml
-command: ["npm", "run", "dev"]
+command: ["cargo", "test"]
 watch:
-  - "src/**" # Watch all files in src directory recursively
-  - "public/*.html" # Watch HTML files in public directory
-
-ext: "js,jsx,ts,tsx"
-
-pattern:
-  - "src/**/*.{js,jsx,ts,tsx}" # JavaScript/TypeScript files in src
-
+  - src
+  - tests
+ext: "rs"
 ignore:
-  - "**/node_modules/**" # Ignore node_modules directory
-  - "**/.git/**" # Ignore .git directory
-  - "**/*.min.js" # Ignore minified JS files
-
+  - "**/target/**"
 debounce: 200
-initial: true
-clear: true
 restart: true
+clear: true
+initial: true
 ```
 
-Then run Flash with:
+CLI flags always win over the config file — the file fills in whatever you
+didn't pass on the command line.
 
-```sh
-flash -f flash.yaml
+### Glob support
+
+Includes (`-p`) and ignores (`-i`) use [globset], so the obvious things work:
+
+```text
+src/**/*.rs              all Rust files under src/
+src/**/*.{js,ts,tsx}     brace expansion is supported
+**/__snapshots__/**      anything nested in __snapshots__
 ```
 
-You can also override configuration file settings with command line arguments.
-
-## Common Use Cases
-
-### Web Development
-
-```sh
-flash -w "src/**" -w "public/**" -e js,jsx,ts,tsx,css,html -i "**/node_modules/**" -r -c -n npm start
-```
-
-### Rust Development
-
-```sh
-flash -w "src/**/*.rs" -w "tests/**/*.rs" -i "target/**" -c cargo test
-```
-
-### Documentation
-
-```sh
-flash -w "docs/**/*.md" -c -n mdbook build
-```
-
-## Performance and Benchmarks
-
-Flash is designed to be blazingly fast and resource efficient. To see how it compares to other file watchers:
-
-```sh
-flash --bench
-```
-
-This will show sample benchmark results. For real benchmarks, you can run:
-
-```sh
-# Run actual benchmarks (requires benchmarks feature)
-cargo bench --features benchmarks
-
-# Or install with benchmarks enabled
-cargo install flash-watcher --features benchmarks
-```
-
-**Note**: The `--bench` flag shows sample benchmark data for demonstration. For real benchmarks, use `cargo bench --features benchmarks`. Benchmarks are disabled by default in CI/CD pipelines to save workflow minutes.
-
-### Development Scripts
-
-For developers, we provide convenient scripts:
-
-```sh
-# Generate code coverage reports (fast, excludes benchmarks)
-./scripts/coverage.sh
-
-# Run performance benchmarks (slow, requires benchmarks feature)
-./scripts/benchmark.sh
-```
+Passing a glob to `-w` is also supported — Flash watches the longest fixed
+prefix of the pattern and applies the glob as a filter.
 
 ## Performance
 
-Flash is designed for speed. See our [performance benchmarks](PERFORMANCE.md) for detailed comparisons with other file watchers.
+Flash sits on the same native event-loop machinery as the fastest watchers in
+the ecosystem, so the headline number is: **it stays out of your way**.
+
+Run the bundled, transparent benchmark on your own machine:
+
+```sh
+flash-watcher --bench
+```
+
+This spawns each watcher it can find on your `PATH`, takes 5 samples per
+metric, and reports the median for binary launch time, end-to-end change
+detection latency, and resident memory at steady state. Every measurement is
+real and reproducible — there are no canned numbers anywhere in the binary.
+
+Representative output (Apple Silicon, macOS, with all three watchers using
+their direct-exec paths):
+
+```text
+Binary launch (smaller is better)
+  flash-watcher     5.22 ms
+  cargo-watch       5.23 ms
+  watchexec         5.28 ms
+
+Change-detection latency (smaller is better)
+  flash-watcher    22.49 ms
+  watchexec        30.73 ms
+  cargo-watch     513.45 ms
+
+Resident memory (smaller is better)
+  flash-watcher    7.11 MiB
+  cargo-watch     10.95 MiB
+  watchexec       13.97 MiB
+```
+
+See [PERFORMANCE.md](PERFORMANCE.md) for a deeper write-up of the methodology.
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to get started.
-
-## Support
-
-- 📖 **Documentation**: Check the [README](README.md) and [examples](example.flash.yaml)
-- 🐛 **Bug Reports**: [Open an issue](https://github.com/sage-scm/Flash/issues/new)
-- 💡 **Feature Requests**: [Open an issue](https://github.com/sage-scm/Flash/issues/new)
-- 💬 **Questions**: [Start a discussion](https://github.com/sage-scm/Flash/discussions)
+Bug reports and pull requests are very welcome. See [CONTRIBUTING.md] for the
+short version: `cargo fmt && cargo clippy --all-targets -- -D warnings && cargo test`.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
+
+[`notify`]: https://docs.rs/notify
+[`notify-debouncer-mini`]: https://docs.rs/notify-debouncer-mini
+[globset]: https://docs.rs/globset
+[CONTRIBUTING.md]: CONTRIBUTING.md
